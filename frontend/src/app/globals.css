@@ -1,0 +1,252 @@
+/*
+ * ============================================================================
+ *  pdf-studio · globals.css · design system
+ * ============================================================================
+ *
+ *  THEME MECHANISM
+ *    next-themes puts a `dark` class on <html>. Dark is the default and system
+ *    detection is off, so theme-provider.tsx must use:
+ *      attribute="class"  defaultTheme="dark"  enableSystem={false}
+ *    Light values live on :root, dark values on .dark. Tailwind's `dark:`
+ *    variant is bound to the same class.
+ *
+ *  FONTS (layout.tsx must set these exact CSS variable names via next/font/google)
+ *    Display : Fraunces   -> Fraunces({ variable: "--font-fraunces" })
+ *    UI sans : Geist Sans -> Geist({ variable: "--font-geist-sans" })
+ *    Both variable classNames go on <html>.
+ *
+ *  PALETTE (exact values)
+ *                      dark         light
+ *    background        #0b0912      #faf7f2
+ *    surface           #13111d      #ffffff
+ *    surface-raised    #1b1827      #f4efe6
+ *    border            #ffffff1a    #15121d1f   (10% white / 12% ink)
+ *    foreground        #f2eff8      #15121d
+ *    muted text        #a49fb8      #5c566b
+ *    focus ring        = text-safe violet of the active theme
+ *
+ *  ACCENT: three stops (violet, magenta, amber), two sets
+ *    Text-safe (per theme; for text, icons, UI borders, focus ring):
+ *                      dark         light
+ *      violet          #a78bfa      #6d28d9
+ *      magenta         #f472b6      #be185d
+ *      amber           #fbbf24      #a14a07
+ *    Decorative (one set, shared by both themes; glows, orbs, large fills only,
+ *    never text): violet #8b5cf6, magenta #ec4899, amber #f59e0b
+ *
+ *  CONTRAST (WCAG 2.x, text-safe stops against the theme background)
+ *                      dark         light
+ *      violet          7.27:1       6.65:1
+ *      magenta         7.47:1       5.65:1
+ *      amber           11.84:1      5.62:1
+ *    Lowest on any surface: 6.40:1 in dark (violet on surface-raised), 5.24:1 in
+ *    light (amber on surface-raised). Every text-safe stop clears 4.5:1 on every
+ *    surface in both themes. Foreground is 17.40:1 / 17.30:1, muted text is
+ *    7.75:1 / 6.55:1 against the background.
+ *
+ *  EASING: mirrored exactly in src/lib/motion.ts. Change both together.
+ * ============================================================================
+ */
+
+@import "tailwindcss";
+
+/* Bind the dark: variant to the .dark class that next-themes sets on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+/* ============================================================================
+   THEME TOKENS
+   ========================================================================== */
+
+/* ── Accent stops, defined once ───────────────────────────────────────────
+   Decorative set: shared by both themes, used for glows, orbs and large fills.
+   Glow shadows below are derived from these with color-mix(), so changing a
+   stop here updates the glows too. */
+:root {
+  --accent-violet-deco: #8b5cf6;
+  --accent-magenta-deco: #ec4899;
+  --accent-amber-deco: #f59e0b;
+
+  --gradient-accent: linear-gradient(
+    135deg,
+    var(--accent-violet-deco),
+    var(--accent-magenta-deco),
+    var(--accent-amber-deco)
+  );
+  --gradient-accent-text: linear-gradient(
+    135deg,
+    var(--accent-violet),
+    var(--accent-magenta),
+    var(--accent-amber)
+  );
+}
+
+/* ── Light theme (default values on :root) ────────────────────────────────── */
+:root {
+  --background: #faf7f2;
+  --foreground: #15121d;
+  --surface: #ffffff;
+  --surface-raised: #f4efe6;
+  --border: #15121d1f;
+  --muted: #5c566b;
+
+  /* Text-safe accent set */
+  --accent-violet: #6d28d9;
+  --accent-magenta: #be185d;
+  --accent-amber: #a14a07;
+  --ring: var(--accent-violet);
+
+  /* Elevation: glows are softer in light */
+  --elevation-soft: 0 1px 2px #15121d0f, 0 12px 32px -16px #15121d24;
+  --elevation-glow:
+    0 0 0 1px color-mix(in srgb, var(--accent-violet-deco) 18%, transparent),
+    0 10px 36px -12px color-mix(in srgb, var(--accent-violet-deco) 28%, transparent);
+  --elevation-glow-strong:
+    0 0 0 1px color-mix(in srgb, var(--accent-magenta-deco) 28%, transparent),
+    0 14px 48px -10px color-mix(in srgb, var(--accent-violet-deco) 35%, transparent),
+    0 6px 24px -8px color-mix(in srgb, var(--accent-magenta-deco) 22%, transparent);
+
+  /* Film grain: ink-coloured noise, lower opacity on paper */
+  --grain-opacity: 0.04;
+  --grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.07 0 0 0 0 0.11 1.2 0 0 0 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Dark theme (must come after :root) ───────────────────────────────────── */
+.dark {
+  --background: #0b0912;
+  --foreground: #f2eff8;
+  --surface: #13111d;
+  --surface-raised: #1b1827;
+  --border: #ffffff1a;
+  --muted: #a49fb8;
+
+  /* Text-safe accent set */
+  --accent-violet: #a78bfa;
+  --accent-magenta: #f472b6;
+  --accent-amber: #fbbf24;
+  --ring: var(--accent-violet);
+
+  --elevation-soft: 0 1px 2px #00000066, 0 12px 32px -16px #000000a6;
+  --elevation-glow:
+    0 0 0 1px color-mix(in srgb, var(--accent-violet-deco) 30%, transparent),
+    0 10px 40px -10px color-mix(in srgb, var(--accent-violet-deco) 50%, transparent);
+  --elevation-glow-strong:
+    0 0 0 1px color-mix(in srgb, var(--accent-magenta-deco) 45%, transparent),
+    0 14px 56px -8px color-mix(in srgb, var(--accent-violet-deco) 65%, transparent),
+    0 6px 28px -6px color-mix(in srgb, var(--accent-magenta-deco) 40%, transparent);
+
+  /* Film grain: white noise */
+  --grain-opacity: 0.08;
+  --grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.2 0 0 0 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Runtime variables exposed to Tailwind ────────────────────────────────
+   `@theme inline` makes utilities reference the runtime variable directly
+   (bg-background -> var(--background)), so they follow the .dark class at
+   runtime instead of being frozen to one value. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-ring: var(--ring);
+
+  /* Text-safe accents: text-accent-violet, border-accent-magenta, ... */
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-magenta: var(--accent-magenta);
+  --color-accent-amber: var(--accent-amber);
+
+  /* Decorative accents: glows, orbs, large fills only. Never for text. */
+  --color-deco-violet: var(--accent-violet-deco);
+  --color-deco-magenta: var(--accent-magenta-deco);
+  --color-deco-amber: var(--accent-amber-deco);
+
+  --shadow-soft: var(--elevation-soft);
+  --shadow-glow: var(--elevation-glow);
+  --shadow-glow-strong: var(--elevation-glow-strong);
+
+  /* next/font sets --font-fraunces and --font-geist-sans (see header). */
+  --font-display: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ── Static tokens ────────────────────────────────────────────────────────── */
+@theme {
+  /* Radius scale */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+
+  /* Spacing */
+  --spacing-gutter: clamp(1rem, 4vw, 2rem);
+  --spacing-section: clamp(4rem, 10vw, 8rem);
+}
+
+/* ── Easing: mirrored exactly in src/lib/motion.ts ────────────────────────
+   `--ease-*: initial` clears Tailwind's built-in curves, so only these three
+   exist as ease-* utilities. The default transition timing is remapped to the
+   soft in-out curve, so a bare `transition` utility never falls back to the
+   browser's default ease. `static` keeps the variables emitted even when no
+   utility uses them yet. */
+@theme static {
+  --ease-*: initial;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft-in-out: cubic-bezier(0.45, 0, 0.2, 1);
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --default-transition-timing-function: var(--ease-soft-in-out);
+}
+
+/* ── Film grain: static noise texture for film-grain.tsx ──────────────────
+   The component adds its own fixed / inset-0 / pointer-events-none / aria-hidden.
+   No animation. Tune strength with --grain-opacity above. */
+@utility film-grain {
+  background-image: var(--grain-texture);
+  background-size: 200px 200px;
+  opacity: var(--grain-opacity);
+}
+
+
+/* ============================================================================
+   BASE LAYER
+   ========================================================================== */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Global focus ring: text-safe violet, offset so it reads on any surface.
+     No outline is removed anywhere without being replaced by this one. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+}
+
+
+/* ============================================================================
+   REDUCED MOTION
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
