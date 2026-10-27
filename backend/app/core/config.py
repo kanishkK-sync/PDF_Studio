@@ -1,8 +1,13 @@
 """Application settings, loaded from environment variables and backend/.env."""
 
 from functools import lru_cache
+from pathlib import Path
 
+from pydantic import PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# backend/app/core/config.py -> backend/app/storage, wherever the server is started.
+_DEFAULT_STORAGE_DIR = Path(__file__).resolve().parent.parent / "storage"
 
 
 class Settings(BaseSettings):
@@ -15,6 +20,11 @@ class Settings(BaseSettings):
     app_name: str = "pdf-studio"
     app_version: str = "0.1.0"
     frontend_origin: str = "http://localhost:3000"
+
+    max_upload_mb: PositiveInt = 100
+    job_ttl_minutes: PositiveInt = 30
+    max_concurrent_jobs: PositiveInt = 2
+    storage_dir: Path = _DEFAULT_STORAGE_DIR
 
     model_config = SettingsConfigDict(
         env_file=".env",
