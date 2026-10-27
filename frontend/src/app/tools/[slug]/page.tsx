@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ComingSoonPanel } from "@/app/tools/coming-soon-panel";
+import { ToolHeader } from "@/components/tools/tool-header";
+import { renderWorkspace } from "@/components/tools/workspaces";
 import { getToolBySlug, tools } from "@/config/tools";
 
 type ToolPageProps = {
@@ -32,9 +34,18 @@ export default async function ToolPage({ params }: ToolPageProps) {
     notFound();
   }
 
+  const workspace = renderWorkspace(slug);
+
   return (
     <div className="mx-auto max-w-3xl px-gutter pb-section pt-28">
-      <ComingSoonPanel tool={tool} />
+      {workspace ? (
+        <>
+          <ToolHeader tool={tool} />
+          <div className="mt-10">{workspace}</div>
+        </>
+      ) : (
+        <ComingSoonPanel tool={tool} />
+      )}
     </div>
   );
 }
