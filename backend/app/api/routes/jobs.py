@@ -86,21 +86,6 @@ def _download_filename(meta: dict[str, Any] | None, result_name: str) -> str:
         suffix = "-compressed" if result_name == RESULT_NAME else ""
         candidate = f"{stem}{suffix}{extension}"
     return f"{safe_display_name(candidate)}{extension}"
-    """The attachment name: sanitised stem plus the extension fixed by the type.
-
-    A stored download_name is cleaned like any client name (no folders, no
-    control characters) and its extension is replaced by the allowlisted one.
-    A Phase 1 job falls back to "<original_name>-compressed.pdf".
-    """
-    extension = RESULT_TYPES[result_name][1]
-    stored = meta.get("download_name") if meta else None
-    if isinstance(stored, str) and stored.strip():
-        return f"{safe_display_name(stored)}{extension}"
-
-    original = meta.get("original_name") if meta else None
-    stem = safe_display_name(original if isinstance(original, str) else None)
-    suffix = "-compressed" if result_name == RESULT_NAME else ""
-    return f"{stem}{suffix}{extension}"
 
 
 @router.get("/jobs/{job_id}/download")
