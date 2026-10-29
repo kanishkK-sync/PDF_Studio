@@ -35,3 +35,22 @@ class PdfToJpgResponse(BaseModel):
     kind: Literal["jpg", "zip"]
     quality: Quality
     download_url: str
+
+
+PageSize = Literal["fit", "a4"]
+
+
+class JpgToPdfResponse(BaseModel):
+    """Payload returned by POST /api/jpg-to-pdf.
+
+    download_name is the file name the download will carry, so the frontend
+    never has to rebuild it.
+    """
+
+    job_id: str
+    page_count: int
+    total_input_size: int
+    result_size: int
+    page_size: PageSize
+    download_name: str
+    download_url: str

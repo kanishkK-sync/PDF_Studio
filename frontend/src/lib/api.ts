@@ -220,3 +220,83 @@ export function buildDownloadUrl(downloadUrl: string): string {
   const path = downloadUrl.startsWith("/") ? downloadUrl : `/${downloadUrl}`;
   return `${API_BASE_URL}${path}`;
 }
+
+// ── Phase 2: PDF to JPG ──────────────────────────────────────────────────────
+
+export type Quality = "low" | "medium" | "high";
+
+// "jpg" is one bare image (a one-page PDF); "zip" holds one image per page.
+export type ResultKind = "jpg" | "zip";
+
+export type PdfToJpgResult = {
+  job_id: string;
+  original_name: string;
+  page_count: number;
+  file_count: number;
+  result_size: number;
+  kind: ResultKind;
+  quality: Quality;
+  download_url: string;
+};
+
+function isQuality(value: unknown): value is Quality {
+  return value === "low" || value === "medium" || value === "high";
+}
+
+function isResultKind(value: unknown): value is ResultKind {
+  return value === "jpg" || value === "zip";
+}
+
+function parsePdfToJpgResult(data: unknown): PdfToJpgResult | null {
+  if (!isRecord(data)) return null;
+  const {
+    job_id,
+    original_name,
+    page_count,
+    file_count,
+    result_size,
+    kind,
+    quality,
+    download_url,
+  } = data;
+
+  if (
+    typeof job_id !== "string" ||
+    typeof original_name !== "string" ||
+    typeof page_count !== "number" ||
+    typeof file_count !== "number" ||
+    typeof result_size !== "number" ||
+    !isResultKind(kind) ||
+    !isQuality(quality) ||
+    typeof download_url !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    job_id,
+    original_name,
+    page_count,
+    file_count,
+    result_size,
+    kind,
+    quality,
+    download_url,
+  };
+}
+
+export function convertPdfToJpg(
+  file: File,
+  quality: Quality,
+  callbacks: UploadCallbacks = {},
+): UploadHandle<PdfToJpgResult> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("quality", quality);
+  return postMultipart(
+    "/api/pdf-to-jpg",
+    form,
+    parsePdfToJpgResult,
+    callbacks,
+  );
+}

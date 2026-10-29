@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { CompressWorkspace } from "@/components/tools/compress-workspace";
+import { PdfToJpgWorkspace } from "@/components/tools/pdf-to-jpg-workspace";
 
 // Tool slug -> function that renders its interactive workspace. A slug that is
 // not listed keeps the Coming soon panel. Add one line here when a later phase
@@ -7,6 +8,7 @@ import { CompressWorkspace } from "@/components/tools/compress-workspace";
 // creating components during render.
 const workspaces: Readonly<Record<string, () => ReactElement>> = {
   "compress-pdf": () => <CompressWorkspace />,
+  "pdf-to-jpg": () => <PdfToJpgWorkspace />,
 };
 
 export function renderWorkspace(slug: string): ReactElement | null {
