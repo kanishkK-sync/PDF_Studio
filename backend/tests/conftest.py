@@ -13,6 +13,7 @@ from PIL import Image, ImageOps
 from app.core.config import get_settings
 from app.main import app
 from app.services.compress import rebuild_concurrency_gate
+from app.services.pdf_to_jpg import rebuild_concurrency_gate as rebuild_pdf_to_jpg_gate
 
 
 @pytest.fixture
@@ -41,6 +42,14 @@ def _reset_concurrency_gate() -> Iterator[None]:
     yield
     get_settings.cache_clear()
     rebuild_concurrency_gate()
+
+
+@pytest.fixture(autouse=True)
+def _reset_pdf_to_jpg_gate() -> Iterator[None]:
+    """The same reset for the PDF to JPG engine's own gate."""
+    yield
+    get_settings.cache_clear()
+    rebuild_pdf_to_jpg_gate()
 
 
 # -- PDF builders --------------------------------------------------------------
@@ -188,6 +197,27 @@ def post_compress(client: TestClient) -> Callable[..., Response]:
         data = {} if level is None else {"level": level}
         return client.post(
             "/api/compress",
+            files={"file": (filename, content, content_type)},
+            data=data,
+        )
+
+    return _post
+
+
+@pytest.fixture
+def post_pdf_to_jpg(client: TestClient) -> Callable[..., Response]:
+    """post_pdf_to_jpg(content, quality="medium", filename="report.pdf")."""
+
+    def _post(
+        content: bytes,
+        *,
+        quality: str | None = "medium",
+        filename: str = "report.pdf",
+        content_type: str = "application/pdf",
+    ) -> Response:
+        data = {} if quality is None else {"quality": quality}
+        return client.post(
+            "/api/pdf-to-jpg",
             files={"file": (filename, content, content_type)},
             data=data,
         )

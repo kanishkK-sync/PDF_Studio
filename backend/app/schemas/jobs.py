@@ -19,3 +19,19 @@ class CompressResponse(BaseModel):
     already_optimized: bool
     level: Level
     download_url: str
+
+
+Quality = Literal["low", "medium", "high"]
+
+
+class PdfToJpgResponse(BaseModel):
+    """Payload returned by POST /api/pdf-to-jpg."""
+
+    job_id: str
+    original_name: str
+    page_count: int
+    file_count: int
+    result_size: int
+    kind: Literal["jpg", "zip"]
+    quality: Quality
+    download_url: str

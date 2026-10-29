@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     max_concurrent_jobs: PositiveInt = 2
     storage_dir: Path = _DEFAULT_STORAGE_DIR
 
+    # Phase 2 conversion limits.
+    max_pdf_pages: PositiveInt = 300
+    max_images: PositiveInt = 50
+    max_render_pixels: PositiveInt = 30_000_000
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

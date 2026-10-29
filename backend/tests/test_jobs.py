@@ -1,7 +1,9 @@
 """Tests for the job routes and for behaviour that spans the whole API."""
 
+import io
 import os
 import time
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -11,6 +13,7 @@ from httpx import Response
 
 from app import main as main_module
 from app.api.routes import compress as compress_route
+from app.api.routes import jobs as jobs_route
 from app.core.config import get_settings
 from app.core.errors import (
     ERROR_STATUS,
@@ -21,6 +24,7 @@ from app.core.errors import (
     NOT_PDF,
 )
 from app.main import app
+from app.services import pdf_to_jpg as pdf_to_jpg_engine
 from app.utils import storage
 
 PostCompress = Callable[..., Response]
@@ -287,3 +291,215 @@ def test_another_origin_is_rejected(client: TestClient) -> None:
     assert preflight.status_code == 400
     assert "access-control-allow-origin" not in preflight.headers
     assert "access-control-allow-origin" not in simple.headers
+
+
+# -- Result types (Phase 2) ----------------------------------------------------
+
+PostPdfToJpg = Callable[..., Response]
+PdfFactory = Callable[..., Path]
+
+
+def _store_job(content: bytes, file_name: str, meta: dict[str, object] | None) -> str:
+    """Put a finished job on disk by hand, the way a route would leave it."""
+    job_id = storage.new_job_id()
+    output_dir = storage.get_output_dir(job_id, create=True)
+    (output_dir / file_name).write_bytes(content)
+    if meta is not None:
+        storage.write_meta(job_id, meta)
+    return job_id
+
+
+def test_zip_result_has_the_zip_headers_and_deletes_the_job(
+    client: TestClient,
+    post_pdf_to_jpg: PostPdfToJpg,
+    pdf_factory: PdfFactory,
+    tmp_path: Path,
+    job_entries: Callable[[], list[str]],
+) -> None:
+    source = pdf_factory(tmp_path / "three.pdf", pages=3)
+    job = post_pdf_to_jpg(source.read_bytes(), filename="report.pdf").json()
+
+    response = client.get(str(job["download_url"]))
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="report-jpg.zip"'
+    )
+    assert zipfile.is_zipfile(io.BytesIO(response.content))
+    assert len(response.content) == job["result_size"]
+    assert job_entries() == []
+
+
+def test_jpg_result_has_the_jpeg_headers_and_deletes_the_job(
+    client: TestClient,
+    post_pdf_to_jpg: PostPdfToJpg,
+    pdf_factory: PdfFactory,
+    tmp_path: Path,
+    job_entries: Callable[[], list[str]],
+) -> None:
+    source = pdf_factory(tmp_path / "one.pdf", pages=1)
+    job = post_pdf_to_jpg(source.read_bytes(), filename="report.pdf").json()
+
+    response = client.get(str(job["download_url"]))
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="report.jpg"'
+    )
+    assert response.content.startswith(b"\xff\xd8\xff")
+    assert len(response.content) == job["result_size"]
+    assert job_entries() == []
+
+
+def test_a_converted_job_cannot_be_downloaded_twice(
+    client: TestClient,
+    post_pdf_to_jpg: PostPdfToJpg,
+    pdf_factory: PdfFactory,
+    tmp_path: Path,
+) -> None:
+    source = pdf_factory(tmp_path / "three.pdf", pages=3)
+    job = post_pdf_to_jpg(source.read_bytes()).json()
+    assert client.get(str(job["download_url"])).status_code == 200
+
+    second = client.get(str(job["download_url"]))
+
+    assert second.status_code == 404
+    assert second.json()["error"]["code"] == JOB_NOT_FOUND
+
+
+def test_range_request_on_a_zip_gets_the_whole_file_and_deletes_the_job(
+    client: TestClient,
+    post_pdf_to_jpg: PostPdfToJpg,
+    pdf_factory: PdfFactory,
+    tmp_path: Path,
+    job_entries: Callable[[], list[str]],
+) -> None:
+    source = pdf_factory(tmp_path / "three.pdf", pages=3)
+    job = post_pdf_to_jpg(source.read_bytes()).json()
+
+    response = client.get(str(job["download_url"]), headers={"Range": "bytes=0-9"})
+
+    assert response.status_code == 200
+    assert len(response.content) == job["result_size"]
+    assert job_entries() == []
+
+
+def test_a_phase_1_job_without_the_new_meta_keys_downloads_as_before(
+    client: TestClient, job_entries: Callable[[], list[str]]
+) -> None:
+    content = b"%PDF-1.4 legacy result"
+    job_id = _store_job(content, "result.pdf", {"original_name": "legacy"})
+
+    response = client.get(f"/api/jobs/{job_id}/download")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="legacy-compressed.pdf"'
+    )
+    assert response.content == content
+    assert job_entries() == []
+
+
+def test_a_job_without_any_metadata_falls_back_to_a_generic_name(
+    client: TestClient,
+) -> None:
+    job_id = _store_job(b"%PDF-1.4 no meta", "result.pdf", None)
+
+    response = client.get(f"/api/jobs/{job_id}/download")
+
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="document-compressed.pdf"'
+    )
+
+
+@pytest.mark.parametrize(
+    "bad_name",
+    ["result.exe", "../result.pdf", "meta.json", "RESULT.PDF", "", 7],
+)
+def test_a_result_name_outside_the_allowlist_is_job_not_found(
+    client: TestClient, bad_name: object
+) -> None:
+    job_id = _store_job(
+        b"%PDF-1.4 secret",
+        "result.pdf",
+        {"original_name": "x", "result_name": bad_name, "download_name": "x.pdf"},
+    )
+
+    response = client.get(f"/api/jobs/{job_id}/download")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == JOB_NOT_FOUND
+    assert b"secret" not in response.content
+
+
+def test_a_stored_download_name_is_sanitised_and_keeps_the_fixed_extension(
+    client: TestClient,
+) -> None:
+    job_id = _store_job(
+        b"PK\x03\x04 zip-ish bytes",
+        "result.zip",
+        {
+            "original_name": "x",
+            "result_name": "result.zip",
+            "download_name": "..\\..\\evil name.exe",
+        },
+    )
+
+    response = client.get(f"/api/jobs/{job_id}/download")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/zip"
+    disposition = response.headers["content-disposition"]
+    assert "evil%20name.zip" in disposition
+    assert ".." not in disposition
+    assert "\\" not in disposition
+    assert ".exe" not in disposition
+
+
+def test_engine_result_names_match_the_download_allowlist() -> None:
+    assert dict(jobs_route.RESULT_TYPES) == {
+        "result.pdf": ("application/pdf", ".pdf"),
+        "result.jpg": ("image/jpeg", ".jpg"),
+        "result.zip": ("application/zip", ".zip"),
+    }
+    assert pdf_to_jpg_engine.RESULT_JPG in jobs_route.RESULT_TYPES
+    assert pdf_to_jpg_engine.RESULT_ZIP in jobs_route.RESULT_TYPES
+
+
+def test_startup_empties_a_leftover_conversion_job(
+    storage_dir: Path, pdf_factory: PdfFactory, tmp_path: Path
+) -> None:
+    content = pdf_factory(tmp_path / "three.pdf", pages=3).read_bytes()
+    with TestClient(app, raise_server_exceptions=False) as first:
+        response = first.post(
+            "/api/pdf-to-jpg",
+            files={"file": ("report.pdf", content, "application/pdf")},
+            data={"quality": "low"},
+        )
+        job_id = response.json()["job_id"]
+    assert (storage_dir / "outputs" / job_id).exists()
+
+    with TestClient(app, raise_server_exceptions=False):
+        pass
+
+    assert not (storage_dir / "outputs" / job_id).exists()
+    
+def test_a_phase_1_name_with_a_dot_keeps_it_in_the_download_name(
+    client: TestClient,
+) -> None:
+    job_id = _store_job(
+        b"%PDF-1.4 dotted", "result.pdf", {"original_name": "report.v2"}
+    )
+
+    response = client.get(f"/api/jobs/{job_id}/download")
+
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="report.v2-compressed.pdf"'
+    )

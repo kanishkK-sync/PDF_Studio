@@ -23,6 +23,13 @@ JOB_NOT_FOUND = "job_not_found"
 PROCESSING_FAILED = "processing_failed"
 INTERNAL_ERROR = "internal_error"
 
+# Phase 2 error codes
+NOT_IMAGE = "not_image"
+TOO_MANY_FILES = "too_many_files"
+TOO_MANY_PAGES = "too_many_pages"
+INVALID_QUALITY = "invalid_quality"
+INVALID_PAGE_SIZE = "invalid_page_size"
+
 # HTTP status for each code
 ERROR_STATUS: dict[str, int] = {
     NOT_PDF: 400,
@@ -34,6 +41,11 @@ ERROR_STATUS: dict[str, int] = {
     JOB_NOT_FOUND: 404,
     PROCESSING_FAILED: 500,
     INTERNAL_ERROR: 500,
+    NOT_IMAGE: 400,
+    TOO_MANY_FILES: 413,
+    TOO_MANY_PAGES: 413,
+    INVALID_QUALITY: 422,
+    INVALID_PAGE_SIZE: 422,
 }
 
 # Default friendly message for each code
@@ -47,6 +59,11 @@ ERROR_MESSAGES: dict[str, str] = {
     JOB_NOT_FOUND: "We couldn't find that file. It may have expired or already been downloaded.",
     PROCESSING_FAILED: "Something went wrong while compressing your PDF. Please try again.",
     INTERNAL_ERROR: "Something went wrong on our side. Please try again in a moment.",
+    NOT_IMAGE: "That file doesn't look like a JPG image. Please choose JPG images and try again.",
+    TOO_MANY_FILES: "That's too many images at once. Please choose fewer images and try again.",
+    TOO_MANY_PAGES: "This PDF has too many pages to convert at once. Please split it into smaller parts and try again.",
+    INVALID_QUALITY: "Please choose an image quality: low, medium or high.",
+    INVALID_PAGE_SIZE: "Please choose a page size: fit or A4.",
 }
 
 
