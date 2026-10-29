@@ -300,3 +300,75 @@ export function convertPdfToJpg(
     callbacks,
   );
 }
+// -- Phase 2: JPG to PDF ------------------------------------------------------
+
+export type PageSize = "fit" | "a4";
+
+export type JpgToPdfResult = {
+  job_id: string;
+  page_count: number;
+  total_input_size: number;
+  result_size: number;
+  page_size: PageSize;
+  // The file name the download will carry, decided by the server.
+  download_name: string;
+  download_url: string;
+};
+
+function isPageSize(value: unknown): value is PageSize {
+  return value === "fit" || value === "a4";
+}
+
+function parseJpgToPdfResult(data: unknown): JpgToPdfResult | null {
+  if (!isRecord(data)) return null;
+  const {
+    job_id,
+    page_count,
+    total_input_size,
+    result_size,
+    page_size,
+    download_name,
+    download_url,
+  } = data;
+
+  if (
+    typeof job_id !== "string" ||
+    typeof page_count !== "number" ||
+    typeof total_input_size !== "number" ||
+    typeof result_size !== "number" ||
+    !isPageSize(page_size) ||
+    typeof download_name !== "string" ||
+    typeof download_url !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    job_id,
+    page_count,
+    total_input_size,
+    result_size,
+    page_size,
+    download_name,
+    download_url,
+  };
+}
+
+// The order of `files` is the page order.
+export function jpgToPdf(
+  files: readonly File[],
+  pageSize: PageSize,
+  callbacks: UploadCallbacks = {},
+): UploadHandle<JpgToPdfResult> {
+  const form = new FormData();
+  for (const file of files) {
+    form.append("files", file);
+  }
+  form.append("page_size", pageSize);
+  return postMultipart(
+    "/api/jpg-to-pdf",
+    form,
+    parseJpgToPdfResult,
+    callbacks,
+  );
+}
