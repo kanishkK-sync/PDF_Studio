@@ -1,7 +1,7 @@
 """Shared test fixtures."""
 
 import io
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 
 import pymupdf
@@ -13,6 +13,7 @@ from PIL import Image, ImageOps
 from app.core.config import get_settings
 from app.main import app
 from app.services.compress import rebuild_concurrency_gate
+from app.services.jpg_to_pdf import rebuild_concurrency_gate as rebuild_jpg_to_pdf_gate
 from app.services.pdf_to_jpg import rebuild_concurrency_gate as rebuild_pdf_to_jpg_gate
 
 
@@ -50,6 +51,14 @@ def _reset_pdf_to_jpg_gate() -> Iterator[None]:
     yield
     get_settings.cache_clear()
     rebuild_pdf_to_jpg_gate()
+
+
+@pytest.fixture(autouse=True)
+def _reset_jpg_to_pdf_gate() -> Iterator[None]:
+    """The same reset for the JPG to PDF engine's own gate."""
+    yield
+    get_settings.cache_clear()
+    rebuild_jpg_to_pdf_gate()
 
 
 # -- PDF builders --------------------------------------------------------------
@@ -219,6 +228,29 @@ def post_pdf_to_jpg(client: TestClient) -> Callable[..., Response]:
         return client.post(
             "/api/pdf-to-jpg",
             files={"file": (filename, content, content_type)},
+            data=data,
+        )
+
+    return _post
+
+
+@pytest.fixture
+def post_jpg_to_pdf(client: TestClient) -> Callable[..., Response]:
+    """post_jpg_to_pdf([(name, content), ...], page_size="fit").
+
+    Every part is sent as image/jpeg on purpose: the server must go by the
+    bytes, never by the declared type.
+    """
+
+    def _post(
+        files: Sequence[tuple[str, bytes]],
+        *,
+        page_size: str | None = "fit",
+    ) -> Response:
+        data = {} if page_size is None else {"page_size": page_size}
+        return client.post(
+            "/api/jpg-to-pdf",
+            files=[("files", (name, content, "image/jpeg")) for name, content in files],
             data=data,
         )
 

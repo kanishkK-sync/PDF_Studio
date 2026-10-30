@@ -41,16 +41,22 @@ PageSize = Literal["fit", "a4"]
 
 
 class JpgToPdfResponse(BaseModel):
-    """Payload returned by POST /api/jpg-to-pdf.
-
-    download_name is the file name the download will carry, so the frontend
-    never has to rebuild it.
-    """
+    """Payload returned by POST /api/jpg-to-pdf."""
 
     job_id: str
     page_count: int
     total_input_size: int
     result_size: int
     page_size: PageSize
+    download_url: str
+
+class PdfToWordResponse(BaseModel):
+    """Payload returned by POST /api/pdf-to-word."""
+
+    job_id: str
+    original_name: str
+    page_count: int
+    original_size: int
+    result_size: int
     download_name: str
     download_url: str

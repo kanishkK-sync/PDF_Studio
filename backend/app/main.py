@@ -9,12 +9,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
-from app.api.routes import compress, health, jobs, jpg_to_pdf, pdf_to_jpg
+from app.api.routes import (
+    compress,
+    health,
+    jobs,
+    jpg_to_pdf,
+    pdf_to_jpg,
+    pdf_to_word,
+)
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.services.compress import rebuild_concurrency_gate
 from app.services.jpg_to_pdf import rebuild_concurrency_gate as rebuild_jpg_to_pdf_gate
 from app.services.pdf_to_jpg import rebuild_concurrency_gate as rebuild_pdf_to_jpg_gate
+from app.services.pdf_to_word import (
+    rebuild_concurrency_gate as rebuild_pdf_to_word_gate,
+)
 from app.utils.storage import purge_all, sweep_expired
 
 logger = logging.getLogger(__name__)
@@ -53,6 +63,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     rebuild_concurrency_gate()
     rebuild_pdf_to_jpg_gate()
     rebuild_jpg_to_pdf_gate()
+    rebuild_pdf_to_word_gate()
     sweeper = asyncio.create_task(_sweep_forever())
     try:
         yield
@@ -84,3 +95,4 @@ app.include_router(compress.router, prefix="/api")
 app.include_router(jobs.router, prefix="/api")
 app.include_router(pdf_to_jpg.router, prefix="/api")
 app.include_router(jpg_to_pdf.router, prefix="/api")
+app.include_router(pdf_to_word.router, prefix="/api")

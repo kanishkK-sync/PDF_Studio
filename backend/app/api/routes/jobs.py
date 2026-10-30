@@ -25,6 +25,7 @@ RESULT_TYPES: Mapping[str, tuple[str, str]] = {
     "result.pdf": ("application/pdf", ".pdf"),
     "result.jpg": ("image/jpeg", ".jpg"),
     "result.zip": ("application/zip", ".zip"),
+    "result.docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"),
 }
 
 

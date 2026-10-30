@@ -372,3 +372,65 @@ export function jpgToPdf(
     callbacks,
   );
 }
+
+// -- Phase 3: PDF to Word -----------------------------------------------------
+
+export type PdfToWordResult = {
+  job_id: string;
+  original_name: string;
+  page_count: number;
+  original_size: number;
+  result_size: number;
+  // The file name the download will carry, decided by the server.
+  download_name: string;
+  download_url: string;
+};
+
+function parsePdfToWordResult(data: unknown): PdfToWordResult | null {
+  if (!isRecord(data)) return null;
+  const {
+    job_id,
+    original_name,
+    page_count,
+    original_size,
+    result_size,
+    download_name,
+    download_url,
+  } = data;
+
+  if (
+    typeof job_id !== "string" ||
+    typeof original_name !== "string" ||
+    typeof page_count !== "number" ||
+    typeof original_size !== "number" ||
+    typeof result_size !== "number" ||
+    typeof download_name !== "string" ||
+    typeof download_url !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    job_id,
+    original_name,
+    page_count,
+    original_size,
+    result_size,
+    download_name,
+    download_url,
+  };
+}
+
+export function convertPdfToWord(
+  file: File,
+  callbacks: UploadCallbacks = {},
+): UploadHandle<PdfToWordResult> {
+  const form = new FormData();
+  form.append("file", file);
+  return postMultipart(
+    "/api/pdf-to-word",
+    form,
+    parsePdfToWordResult,
+    callbacks,
+  );
+}

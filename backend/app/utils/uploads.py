@@ -17,6 +17,8 @@ EMPTY_FILE_MESSAGE = "That file is empty. Please choose a PDF that has pages in 
 
 _MEGABYTE = 1024 * 1024
 _PDF_SIGNATURE = b"%PDF-"
+_JPEG_SIGNATURE = b"\xff\xd8\xff"
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _SIGNATURE_WINDOW = 1024
 _UNSAFE_NAME_CHARS = re.compile(r'[<>:"/\\|?*]')
 # Control, format (such as right-to-left override), surrogate, private-use, unassigned.
@@ -60,6 +62,24 @@ def looks_like_pdf(path: Path) -> bool:
     with path.open("rb") as file:
         head = file.read(_SIGNATURE_WINDOW)
     return _PDF_SIGNATURE in head
+
+
+def _starts_with(path: Path, signature: bytes) -> bool:
+    with path.open("rb") as file:
+        return file.read(len(signature)) == signature
+
+
+def looks_like_jpeg(path: Path) -> bool:
+    """True if the file starts with the JPEG signature (FF D8 FF).
+
+    Only the bytes are checked, never the client's filename or content type.
+    """
+    return _starts_with(path, _JPEG_SIGNATURE)
+
+
+def looks_like_png(path: Path) -> bool:
+    """True if the file starts with the 8-byte PNG signature."""
+    return _starts_with(path, _PNG_SIGNATURE)
 
 
 def safe_display_name(filename: str | None) -> str:

@@ -467,6 +467,7 @@ def test_engine_result_names_match_the_download_allowlist() -> None:
         "result.pdf": ("application/pdf", ".pdf"),
         "result.jpg": ("image/jpeg", ".jpg"),
         "result.zip": ("application/zip", ".zip"),
+        "result.docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"),
     }
     assert pdf_to_jpg_engine.RESULT_JPG in jobs_route.RESULT_TYPES
     assert pdf_to_jpg_engine.RESULT_ZIP in jobs_route.RESULT_TYPES
