@@ -60,3 +60,32 @@ class PdfToWordResponse(BaseModel):
     result_size: int
     download_name: str
     download_url: str
+
+
+class PdfToExcelResponse(BaseModel):
+    """Payload returned by POST /api/pdf-to-excel."""
+
+    job_id: str
+    original_name: str
+    page_count: int
+    table_count: int
+    sheet_count: int
+    mode: Literal["tables", "text"]
+    original_size: int
+    result_size: int
+    download_name: str
+    download_url: str
+
+
+class PdfToPptxResponse(BaseModel):
+    """Payload returned by POST /api/pdf-to-pptx."""
+
+    job_id: str
+    original_name: str
+    page_count: int
+    slide_count: int
+    mode: Literal["pictures", "editable"]
+    original_size: int
+    result_size: int
+    download_name: str
+    download_url: str
