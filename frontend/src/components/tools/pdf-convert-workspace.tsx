@@ -65,6 +65,10 @@ type PdfConvertWorkspaceProps<R extends PdfConvertResult> = {
   busyAnnouncement: string;
   // An honest note about fidelity, shown above the button.
   fidelityNote?: string;
+  // Tool-specific controls (for example a mode picker), shown after a file is
+  // chosen and before the result. It is a function because only the workspace
+  // knows `busy`, and the controls must be disabled while a job is running.
+  options?: (busy: boolean) => ReactNode;
   run: JobRunner<R>;
   describe: (result: R) => PdfConvertSummary;
   resetLabel: string;
@@ -124,6 +128,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
   busyLabel,
   busyAnnouncement,
   fidelityNote,
+  options,
   run,
   describe,
   resetLabel,
@@ -279,6 +284,8 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
               onRetry={retryable ? handleConvert : undefined}
             />
           )}
+
+          {options?.(busy)}
 
           {fidelityNote && (
             <p className="text-sm leading-relaxed text-muted">{fidelityNote}</p>

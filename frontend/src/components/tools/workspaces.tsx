@@ -1,7 +1,9 @@
 import type { ReactElement } from "react";
 import { CompressWorkspace } from "@/components/tools/compress-workspace";
 import { JpgToPdfWorkspace } from "@/components/tools/jpg-to-pdf-workspace";
+import { PdfToExcelWorkspace } from "@/components/tools/pdf-to-excel-workspace";
 import { PdfToJpgWorkspace } from "@/components/tools/pdf-to-jpg-workspace";
+import { PdfToPptxWorkspace } from "@/components/tools/pdf-to-pptx-workspace";
 import { PdfToWordWorkspace } from "@/components/tools/pdf-to-word-workspace";
 
 // Tool slug -> function that renders its interactive workspace. A slug that is
@@ -13,6 +15,8 @@ const workspaces: Readonly<Record<string, () => ReactElement>> = {
   "pdf-to-jpg": () => <PdfToJpgWorkspace />,
   "jpg-to-pdf": () => <JpgToPdfWorkspace />,
   "pdf-to-word": () => <PdfToWordWorkspace />,
+  "pdf-to-excel": () => <PdfToExcelWorkspace />,
+  "pdf-to-powerpoint": () => <PdfToPptxWorkspace />,
 };
 
 export function renderWorkspace(slug: string): ReactElement | null {

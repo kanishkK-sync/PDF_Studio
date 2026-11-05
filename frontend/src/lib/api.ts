@@ -434,3 +434,162 @@ export function convertPdfToWord(
     callbacks,
   );
 }
+
+// -- Phase 3: PDF to Excel and PDF to PowerPoint ------------------------------
+
+// "tables": one sheet per table found. "text": no tables, so one text sheet.
+export type ExcelMode = "tables" | "text";
+
+export type PdfToExcelResult = {
+  job_id: string;
+  original_name: string;
+  page_count: number;
+  table_count: number;
+  sheet_count: number;
+  mode: ExcelMode;
+  original_size: number;
+  result_size: number;
+  // The file name the download will carry, decided by the server.
+  download_name: string;
+  download_url: string;
+};
+
+function isExcelMode(value: unknown): value is ExcelMode {
+  return value === "tables" || value === "text";
+}
+
+function parsePdfToExcelResult(data: unknown): PdfToExcelResult | null {
+  if (!isRecord(data)) return null;
+  const {
+    job_id,
+    original_name,
+    page_count,
+    table_count,
+    sheet_count,
+    mode,
+    original_size,
+    result_size,
+    download_name,
+    download_url,
+  } = data;
+
+  if (
+    typeof job_id !== "string" ||
+    typeof original_name !== "string" ||
+    typeof page_count !== "number" ||
+    typeof table_count !== "number" ||
+    typeof sheet_count !== "number" ||
+    !isExcelMode(mode) ||
+    typeof original_size !== "number" ||
+    typeof result_size !== "number" ||
+    typeof download_name !== "string" ||
+    typeof download_url !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    job_id,
+    original_name,
+    page_count,
+    table_count,
+    sheet_count,
+    mode,
+    original_size,
+    result_size,
+    download_name,
+    download_url,
+  };
+}
+
+export function convertPdfToExcel(
+  file: File,
+  callbacks: UploadCallbacks = {},
+): UploadHandle<PdfToExcelResult> {
+  const form = new FormData();
+  form.append("file", file);
+  return postMultipart(
+    "/api/pdf-to-excel",
+    form,
+    parsePdfToExcelResult,
+    callbacks,
+  );
+}
+
+// "pictures": each page is one image on its slide (exact look, not editable).
+// "editable": text and images are rebuilt as PowerPoint objects.
+export type PptxMode = "pictures" | "editable";
+
+export type PdfToPptxResult = {
+  job_id: string;
+  original_name: string;
+  page_count: number;
+  slide_count: number;
+  mode: PptxMode;
+  original_size: number;
+  result_size: number;
+  // The file name the download will carry, decided by the server.
+  download_name: string;
+  download_url: string;
+};
+
+function isPptxMode(value: unknown): value is PptxMode {
+  return value === "pictures" || value === "editable";
+}
+
+function parsePdfToPptxResult(data: unknown): PdfToPptxResult | null {
+  if (!isRecord(data)) return null;
+  const {
+    job_id,
+    original_name,
+    page_count,
+    slide_count,
+    mode,
+    original_size,
+    result_size,
+    download_name,
+    download_url,
+  } = data;
+
+  if (
+    typeof job_id !== "string" ||
+    typeof original_name !== "string" ||
+    typeof page_count !== "number" ||
+    typeof slide_count !== "number" ||
+    !isPptxMode(mode) ||
+    typeof original_size !== "number" ||
+    typeof result_size !== "number" ||
+    typeof download_name !== "string" ||
+    typeof download_url !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    job_id,
+    original_name,
+    page_count,
+    slide_count,
+    mode,
+    original_size,
+    result_size,
+    download_name,
+    download_url,
+  };
+}
+
+export function convertPdfToPptx(
+  file: File,
+  mode: PptxMode,
+  callbacks: UploadCallbacks = {},
+): UploadHandle<PdfToPptxResult> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("mode", mode);
+  return postMultipart(
+    "/api/pdf-to-pptx",
+    form,
+    parsePdfToPptxResult,
+    callbacks,
+  );
+}
