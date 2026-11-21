@@ -28,6 +28,7 @@ from app.api.routes import (
 )
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.core.rate_limit import RateLimitMiddleware
 from app.utils.storage import purge_all, sweep_expired
 
 logger = logging.getLogger(__name__)
@@ -82,12 +83,14 @@ app = FastAPI(
 
 register_error_handlers(app)
 
+# CORS wraps the limiter so even 429 responses are readable across hosts.
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
-    expose_headers=["X-Redacted-Count", "X-Metadata-Scrubbed", "X-Verified-Unrecoverable",
+    expose_headers=["Retry-After", "X-Redacted-Count", "X-Metadata-Scrubbed", "X-Verified-Unrecoverable",
                     "X-Page-Count", "X-Word-Count", "X-Estimated-Tokens",
                     "X-Compared-Pages", "X-Truncated", "X-Pages-Changed",
                     "X-Total-Pages", "X-Overall-Similarity"],

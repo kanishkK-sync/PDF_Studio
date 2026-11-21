@@ -11,7 +11,7 @@ export function Navbar() {
   const header = useRef<HTMLElement>(null);
   const progress = useRef<HTMLDivElement>(null);
   const { status, latency } = useBackendStatus();
-  const label = status === "connected" ? "Engine Ready" : status === "offline" ? "Engine offline" : "Checking engine";
+  const label = status === "connected" ? "Engine Ready" : status === "offline" ? "Engine offline" : status === "waking" ? "Engine waking up..." : "Checking engine";
   useEffect(() => {
     let frame = 0;
     function paint() {

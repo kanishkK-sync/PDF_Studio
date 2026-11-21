@@ -1,10 +1,22 @@
 # pdf-studio
 
-A free, local-first PDF toolkit. Everything runs on your own machine: files are processed here and never sent anywhere else.
+A free, local-first PDF toolkit with 15 tools. Run both services on your machine, or host the Next.js frontend on Vercel and the FastAPI backend on Render or Koyeb. In a hosted deployment, files leave the browser and are processed on the configured backend server.
+
+## One-command local startup with Docker
+
+Install Docker with Compose, then run from the repository root:
+
+```bash
+docker compose up --build
+```
+
+Open <http://localhost:3000>; the API health endpoint is <http://localhost:8000/api/health>. Compose builds the Python backend and starts the frontend development server using Node 24. The frontend installs locked dependencies with `npm ci`; no frontend production build is needed for this local workflow. First startup downloads dependencies and the backend image, including LibreOffice and fonts.
+
+The published ports bind to localhost. Browser requests use `http://localhost:8000`, rather than the internal Docker service name. Source files are mounted into the frontend; its dependencies and Next.js cache use Docker volumes. Backend documents use temporary container storage, without a persistent document volume. Stop with `docker compose down`.
 
 ## Current status
 
-The registry includes 15 tools. Files are processed locally and results are deleted after download or expiry.
+The registry includes 15 tools. Files are processed on the configured backend (local by default), and results are deleted after download or expiry.
 
 - **Compress PDF** (`/tools/compress-pdf`): choose a PDF, pick a level, upload, and download the smaller file. Text stays selectable and searchable, and links, bookmarks, form fields, annotations, page sizes and metadata are kept. The result is never larger than the original; if nothing can be saved, you get the original back marked "Already optimized".
   - **Light:** lossless. Cleans up the file structure and leaves images untouched.
@@ -29,7 +41,7 @@ The registry includes 15 tools. Files are processed locally and results are dele
 - **Redact PDF** (/tools/redact-pdf) removes matching searchable text, including matches across lines, and checks the saved output. Optional scrubbing also removes document metadata, annotations, forms, links and attachments. Text contained in pictures or drawn as outlines needs visual review.
 - **PDF to AI Markdown** (/tools/pdf-to-markdown) extracts text, headings, lists and tables in inferred reading order. Preview or copy the Markdown, see an approximate token count, or download the UTF-8 file.
 - **Visual & Structural PDF Diff** (`/tools/compare-pdf`) compares corresponding page numbers in two local PDFs, up to the first 25. Review cyan additions and magenta removals, inspect changed text, or download the PNG overlays and JSON and text reports together. A page’s similarity uses the lower of pixel agreement and normalized word-pair overlap. An added or removed page scores zero. The overall score averages the compared positions.
-- **Homepage:** hero, a backend-status pill that checks `/api/health` every 10 seconds, a category filter, the tool grid, and a light/dark theme toggle (dark by default).
+- **Homepage:** hero, a backend-status pill that checks `/api/health` every 10 seconds, a category filter, the tool grid, and a light/dark theme toggle (dark by default). The initial probe shows "Engine waking up..." after 2.5 seconds and waits up to 120 seconds for a cold backend. Subsequent probes time out after 3 seconds; offline checks retry every 3 seconds.
 
 ## Requirements
 
@@ -108,7 +120,6 @@ Other commands, from `frontend/`:
 ```bash
 npx tsc --noEmit
 npm run lint
-npm run build
 ```
 
 In Windows PowerShell 5.1, `&&` does not work as a command separator. Run these one after another, or join them with `;`.
@@ -126,12 +137,15 @@ Backend (`backend/.env`, or real environment variables). Restart `uvicorn` after
 | `MAX_UPLOAD_MB` | `100` | Largest upload the backend accepts, in MB. For JPG to PDF it limits the total size of all images together. |
 | `JOB_TTL_MINUTES` | `30` | Age after which the sweeper deletes a job. |
 | `MAX_CONCURRENT_JOBS` | `1` | Compatibility setting. PyMuPDF jobs are serialized by one shared gate across all tools in each server process; increasing this value does not enable parallel PyMuPDF work. |
-| `MAX_PDF_PAGES` | `300` | Most pages converted in one PDF to JPG job. |
+| `MAX_PDF_PAGES` | `300` | Page limit used across PDF operations and generated Office PDFs. Comparison separately covers up to the first 25 pages. |
 | `MAX_IMAGES` | `50` | Most images accepted in one JPG to PDF job. |
 | `MAX_MERGE_FILES` | `20` | Most PDFs accepted in one merge job. |
 | `MAX_RENDER_PIXELS` | `30000000` | Most pixels rendered for one PDF page. A larger page is rendered at a lower DPI. |
 | `STORAGE_DIR` | `backend/app/storage` | Where uploads and results are kept while a job lives. |
 | `FRONTEND_ORIGIN` | `http://localhost:3000` | The single origin allowed by CORS. |
+| `RATE_LIMIT_PER_MINUTE` | `30` | Accepted API requests per client IP in a sliding 60-second window. Must be a positive integer. Health checks and OPTIONS are exempt. Counters are in memory and reset on restart. |
+| `PORT` | `8000` | Port used by the Docker startup command; use the hosting provider's supplied value where available. |
+| `FORWARDED_ALLOW_IPS` | `127.0.0.1` (Uvicorn default) | Trusted reverse-proxy IPs/networks for resolving client IPs. Configure for your deployment's ingress; see proxy guidance below. |
 | `APP_VERSION` | `0.1.0` | Version reported by `/api/health`. |
 
 Frontend (`frontend/.env.local`). Restart `npm run dev` after changing any of them, because `NEXT_PUBLIC_*` values are built into the browser bundle when the server starts.
@@ -139,8 +153,43 @@ Frontend (`frontend/.env.local`). Restart `npm run dev` after changing any of th
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Base URL of the backend, without a trailing slash. |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Public frontend origin for metadata, canonical URLs, sitemap URLs, and JSON-LD. |
 | `NEXT_PUBLIC_MAX_UPLOAD_MB` | `100` | Size limit the upload forms check before sending. Keep it equal to the backend's `MAX_UPLOAD_MB`; the backend stays the authority. |
 | `NEXT_PUBLIC_MAX_IMAGES` | `50` | Image limit the JPG to PDF form checks. Keep it equal to the backend's `MAX_IMAGES`. |
+
+## Public split-hosting deployment
+
+Use a stable HTTPS origin for each service, for example `https://pdf-studio.example` and `https://api.pdf-studio.example`. Browser uploads and downloads go directly to the backend; they are not proxied through Vercel functions. Do not put credentials in `NEXT_PUBLIC_*` variables; these values are public and embedded during the frontend deployment. Redeploy the frontend whenever they change.
+
+### Backend on Render
+
+1. Create a web service from this repository using the Docker runtime. Set the service root/build context to `backend` and the Dockerfile path relative to that root to `Dockerfile`.
+2. Set `FRONTEND_ORIGIN` to the exact frontend origin, without a trailing slash or path. Set `RATE_LIMIT_PER_MINUTE=30`, `MAX_UPLOAD_MB=100`, `MAX_IMAGES=50`, and optionally the resource limits above. Let the service supply `PORT`; the Docker command reads it automatically.
+3. Configure the health check path as `/api/health`. Run one instance. The image runs one Uvicorn worker as a non-root user, with writable ephemeral storage at `/app/storage`.
+4. Deploy, then check `https://<backend-host>/api/health` and use that HTTPS origin as Vercel's `NEXT_PUBLIC_API_URL`.
+
+### Backend on Koyeb
+
+1. Create a web service from this repository using a Dockerfile build. Select `backend` as the work/build directory and its `Dockerfile`. The Docker build context must contain `requirements.txt` and `app/`.
+2. Expose HTTP port `8000` and set `PORT=8000`, or make `PORT` match the port configured for the service. Set the same backend environment variables as for Render, including the exact frontend origin.
+3. Configure an HTTP health check at `/api/health`, keep one instance, and deploy. Use the resulting HTTPS backend origin in the frontend environment.
+
+### Frontend on Vercel
+
+1. Import the repository, select the Next.js framework, and set the project root to `frontend`. Use Node.js 24 or a compatible newer version allowed by `package.json`, with the standard Next.js deployment settings.
+2. Set `NEXT_PUBLIC_API_URL` to the backend's HTTPS origin and `NEXT_PUBLIC_SITE_URL` to the final public frontend origin. Set `NEXT_PUBLIC_MAX_UPLOAD_MB` and `NEXT_PUBLIC_MAX_IMAGES` equal to the backend values.
+3. Deploy the frontend. Set the backend's `FRONTEND_ORIGIN` to that exact Vercel or custom-domain origin and redeploy/restart the backend. If the frontend URL changes, update both `FRONTEND_ORIGIN` and `NEXT_PUBLIC_SITE_URL` and redeploy the affected services. The single-origin CORS setting does not automatically allow Vercel preview URLs.
+4. Visit a tool page and verify the health pill, an upload, and its download. Check `/sitemap.xml`, `/robots.txt`, and `/llms.txt` on the frontend origin; sitemap and canonical URLs should use the public frontend origin.
+
+### Proxy IPs, rate limits, and storage
+
+The limiter uses the ASGI client address supplied by Uvicorn. It never parses arbitrary `X-Forwarded-For` headers itself. Configure `FORWARDED_ALLOW_IPS` with your ingress proxy's trusted addresses/networks so users have separate budgets. If the proxy is untrusted, its address can become one shared budget for all visitors. Use `FORWARDED_ALLOW_IPS=*` only when the backend is reachable exclusively through a trusted ingress that sanitizes forwarded headers and direct access is blocked; otherwise clients can forge their IPs. Confirm these network conditions with the hosting provider before enabling wildcard trust.
+
+After an IP uses its budget (30 by default) within 60 seconds, the next request returns HTTP 429 with `{"error":{"code":"RATE_LIMITED","message":"Too many requests. Please wait a moment and try again."}}` and a `Retry-After` header. All `/api/` routes except health checks and OPTIONS share the budget, including uploads, downloads, and deletes. Rejected requests do not extend the window. CORS exposes `Retry-After` to the configured frontend. Rate limiting is disabled automatically under pytest; dedicated limiter tests explicitly enable it.
+
+Keep one backend process and one instance: job files and rate-limit counters are local. Multiple instances would require shared job storage and a shared rate limiter. Restarts, redeployments, and scale-to-zero discard pending results. No persistent document disk is required. Uploads are deleted after processing, outputs after download or expiry, and the sweeper runs every five minutes. This is zero long-term retention with temporary files, rather than browser-only or memory-only processing. Hosted processing takes place on the backend provider's server.
+
+The Docker image includes LibreOffice and PDF/image system libraries. Current Office-to-PDF tools use the bundled Python renderers, so installing LibreOffice does not change their existing formatting limitations. Choose backend memory and upload limits appropriate to the documents you accept.
 
 ## API
 
@@ -209,9 +258,9 @@ pdf-studio/
   - Check that `uvicorn` is running and that <http://localhost:8000/api/health> responds.
   - Check that you opened the site at `localhost:3000`, not `127.0.0.1`.
   - If you changed `NEXT_PUBLIC_API_URL`, restart `npm run dev`.
-  - The pill can take up to about 13 seconds to change after you start or stop the backend.
+  - On the first check, a slow backend shows "Engine waking up..." after 2.5 seconds and has up to 120 seconds to respond. After that, detecting an outage can take about 13 seconds; offline probes retry every 3 seconds.
 - **"This PDF is password-protected."** Encrypted PDFs are rejected by Compress PDF and PDF to JPG, including ones that open without a password but restrict editing. Remove the protection in the program that created the file, then try again.
-- **A file is rejected as too large.** The limit is `MAX_UPLOAD_MB` on the backend (100 MB by default) and `NEXT_PUBLIC_MAX_UPLOAD_MB` in the browser. For JPG to PDF it applies to all images together. Raise both to the same value and restart both servers. The backend checks the limit only after the whole upload has arrived, so the browser check is what saves you from a long failed upload.
+- **A file is rejected as too large.** The limit is `MAX_UPLOAD_MB` on the backend (100 MB by default) and `NEXT_PUBLIC_MAX_UPLOAD_MB` in the browser. For JPG to PDF it applies to all images together. Raise both to the same value, restart the backend, and restart or redeploy the frontend. The browser check saves unnecessary uploads; backend limits remain authoritative.
 - **"This PDF has too many pages."** PDF to JPG stops at `MAX_PDF_PAGES` pages (300 by default). Split the PDF into parts, or raise the limit in `backend/.env` and restart `uvicorn`.
 - **JPG to PDF rejects an image.** Only JPG and PNG pictures are accepted, and the type is checked from the file's contents, not its name. A file renamed to `.jpg` that is not really a picture is refused. The message names which image in the list is the problem. Too many images need a higher `MAX_IMAGES` on the backend and `NEXT_PUBLIC_MAX_IMAGES` in the browser.
 - **A result vanished.** Results are deleted after one download, after 30 minutes, and whenever the backend restarts.

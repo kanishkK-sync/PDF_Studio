@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type BackendStatus = "checking" | "connected" | "offline";
+export type BackendStatus = "checking" | "waking" | "connected" | "offline";
 
 // Written out in full so Next can inline it at build time.
 const BASE_URL = (
@@ -13,6 +13,8 @@ const HEALTH_URL = `${BASE_URL}/api/health`;
 const POLL_INTERVAL_MS = 10_000;
 const OFFLINE_POLL_INTERVAL_MS = 3_000;
 const TIMEOUT_MS = 3_000;
+const WAKE_THRESHOLD_MS = 2_500;
+const COLD_START_TIMEOUT_MS = 120_000;
 
 // Never throws: every failure (network error, timeout, bad status, bad JSON,
 // wrong payload) resolves to "offline".
@@ -45,6 +47,8 @@ export function useBackendStatus() {
     let current: BackendStatus = "checking";
     let controller: AbortController | null = null;
     let timerId: number | undefined;
+    let wakeTimerId: number | undefined;
+    let initialProbe = true;
 
     function stopPolling(): void {
       if (timerId !== undefined) {
@@ -67,21 +71,34 @@ export function useBackendStatus() {
 
       const requestController = new AbortController();
       controller = requestController;
+      if (initialProbe) {
+        wakeTimerId = window.setTimeout(() => {
+          if (!cancelled && !requestController.signal.aborted) {
+            current = "waking";
+            setStatus("waking");
+          }
+        }, WAKE_THRESHOLD_MS);
+      }
       const timeoutId = window.setTimeout(
         () => requestController.abort(),
-        TIMEOUT_MS,
+        initialProbe ? COLD_START_TIMEOUT_MS : TIMEOUT_MS,
       );
 
       const started = performance.now();
       const next = await probe(requestController.signal);
 
       window.clearTimeout(timeoutId);
+      window.clearTimeout(wakeTimerId);
+      wakeTimerId = undefined;
       inFlight = false;
       controller = null;
 
       // Only report real changes, never go back to "checking", and never
       // touch state after unmount.
       if (cancelled) return;
+      // Hiding the tab cancels work, but should not mark a cold start offline.
+      if (requestController.signal.aborted && document.visibilityState !== "visible") return;
+      initialProbe = false;
       setLatency(next === "connected" ? Math.round(performance.now() - started) : null);
       if (next !== current) {
         current = next;
@@ -107,6 +124,7 @@ export function useBackendStatus() {
     return () => {
       cancelled = true;
       stopPolling();
+      window.clearTimeout(wakeTimerId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", check);
       window.removeEventListener("focus", check);

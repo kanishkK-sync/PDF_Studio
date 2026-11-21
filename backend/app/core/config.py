@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     app_name: str = "pdf-studio"
     app_version: str = "0.1.0"
     frontend_origin: str = "http://localhost:3000"
+    rate_limit_per_minute: PositiveInt = 30
 
     max_upload_mb: PositiveInt = 100
     job_ttl_minutes: PositiveInt = 30
