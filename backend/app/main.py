@@ -16,6 +16,7 @@ from app.api.routes import (
     jpg_to_pdf,
     merge,
     office_to_pdf,
+    pdf_compare,
     pdf_edit,
     pdf_redact,
     pdf_to_excel,
@@ -87,7 +88,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
     expose_headers=["X-Redacted-Count", "X-Metadata-Scrubbed", "X-Verified-Unrecoverable",
-                    "X-Page-Count", "X-Word-Count", "X-Estimated-Tokens"],
+                    "X-Page-Count", "X-Word-Count", "X-Estimated-Tokens",
+                    "X-Compared-Pages", "X-Truncated", "X-Pages-Changed",
+                    "X-Total-Pages", "X-Overall-Similarity"],
 )
 
 app.include_router(health.router, prefix="/api")
@@ -104,3 +107,4 @@ app.include_router(office_to_pdf.router, prefix="/api")
 app.include_router(pdf_edit.router, prefix="/api")
 app.include_router(pdf_redact.router, prefix="/api")
 app.include_router(pdf_to_markdown.router, prefix="/api")
+app.include_router(pdf_compare.router, prefix="/api")

@@ -9,11 +9,13 @@ import {
   Presentation,
   ShieldCheck,
   FileCode,
+  GitCompareArrows,
 } from "lucide-react";
 
 export type ToolCategory = "optimize" | "edit" | "from-pdf" | "to-pdf";
 
 export type ToolIcon =
+  | "compare"
   | "redact"
   | "markdown"
   | "compress"
@@ -42,6 +44,13 @@ export const categories: readonly { id: ToolCategory; label: string }[] = [
 ];
 
 export const tools: readonly Tool[] = [
+  {
+    slug: "compare-pdf",
+    title: "Visual & Structural PDF Diff",
+    description: "Compare two PDFs page by page, highlighting visual and text changes.",
+    category: "edit",
+    icon: "compare",
+  },
   {
     slug: "redact-pdf",
     title: "Redact PDF",
@@ -146,6 +155,7 @@ export const tools: readonly Tool[] = [
 // string key, because component functions can't cross from server components
 // to client components. Client components look the icon up: toolIcons[tool.icon].
 export const toolIcons = {
+  compare: GitCompareArrows,
   redact: ShieldCheck,
   markdown: FileCode,
   compress: Minimize2,

@@ -4,7 +4,7 @@ A free, local-first PDF toolkit. Everything runs on your own machine: files are 
 
 ## Current status
 
-The registry includes 14 tools. Files are processed locally and results are deleted after download or expiry.
+The registry includes 15 tools. Files are processed locally and results are deleted after download or expiry.
 
 - **Compress PDF** (`/tools/compress-pdf`): choose a PDF, pick a level, upload, and download the smaller file. Text stays selectable and searchable, and links, bookmarks, form fields, annotations, page sizes and metadata are kept. The result is never larger than the original; if nothing can be saved, you get the original back marked "Already optimized".
   - **Light:** lossless. Cleans up the file structure and leaves images untouched.
@@ -28,6 +28,7 @@ The registry includes 14 tools. Files are processed locally and results are dele
 - **Word to PDF, PowerPoint to PDF, Excel to PDF** (`/tools/word-to-pdf`, `/tools/powerpoint-to-pdf`, `/tools/excel-to-pdf`): render text and basic tables or pictures with bundled Python libraries. Text remains searchable where possible. Advanced formatting, charts, formulas and animations may change or be omitted.
 - **Redact PDF** (/tools/redact-pdf) removes matching searchable text, including matches across lines, and checks the saved output. Optional scrubbing also removes document metadata, annotations, forms, links and attachments. Text contained in pictures or drawn as outlines needs visual review.
 - **PDF to AI Markdown** (/tools/pdf-to-markdown) extracts text, headings, lists and tables in inferred reading order. Preview or copy the Markdown, see an approximate token count, or download the UTF-8 file.
+- **Visual & Structural PDF Diff** (`/tools/compare-pdf`) compares corresponding page numbers in two local PDFs, up to the first 25. Review cyan additions and magenta removals, inspect changed text, or download the PNG overlays and JSON and text reports together. A page’s similarity uses the lower of pixel agreement and normalized word-pair overlap. An added or removed page scores zero. The overall score averages the compared positions.
 - **Homepage:** hero, a backend-status pill that checks `/api/health` every 10 seconds, a category filter, the tool grid, and a light/dark theme toggle (dark by default).
 
 ## Requirements
@@ -145,6 +146,7 @@ Frontend (`frontend/.env.local`). Restart `npm run dev` after changing any of th
 
 | Method and path | What it does |
 | --- | --- |
+| `POST /api/compare-pdf` | Multipart PDFs `original` and `revised` share one upload-size limit. Returns a ZIP download job and the headers `X-Compared-Pages`, `X-Truncated`, `X-Pages-Changed`, `X-Total-Pages` and `X-Overall-Similarity`. Total pages is the longer document’s page count. |
 | `POST /api/redact-pdf` | Multipart PDF `file`, comma- or newline-separated `terms`, comma-separated `presets` (emails, phones, ssn, cards, urls), and `scrub_metadata` (default true). Supply a term or preset. Returns a download job and the headers `X-Redacted-Count`, `X-Metadata-Scrubbed` and `X-Verified-Unrecoverable`. Verification checks the saved PDF’s extractable page text. |
 | `POST /api/pdf-to-markdown` | Multipart PDF `file` and `include_page_markers` (default true). Returns Markdown for preview, a download job and the headers `X-Page-Count`, `X-Word-Count` and `X-Estimated-Tokens`. Image-only documents return HTTP 400 with `no_content`. |
 | `GET /api/health` | Returns `{"status": "ok", "version": "..."}`. |

@@ -15,7 +15,6 @@ friendly and free of paths or exception text.
 
 import io
 import logging
-import math
 import os
 import shutil
 import tempfile
@@ -30,13 +29,12 @@ from PIL import Image
 from app.core.config import get_settings
 from app.core.errors import (
     INVALID_QUALITY,
-    PAGE_TOO_LARGE,
     PROCESSING_FAILED,
     TOO_MANY_PAGES,
     AppError,
 )
 from app.schemas.jobs import Quality
-from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
+from app.services.pdf_common import GLOBAL_GATE, fit_render_dpi, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +46,6 @@ ResultKind = Literal["jpg", "zip"]
 _WORK_PREFIX = ".work-"
 _MIN_NAME_DIGITS = 3
 _JPEG_MAGIC = b"\xff\xd8\xff"
-_MAX_SIDE_PIXELS = 65_000  # a JPEG cannot be larger than 65535 pixels on a side
 _FAILED_MESSAGE = "Something went wrong while converting your PDF. Please try again."
 
 
@@ -191,55 +188,6 @@ def _write_zip(
 # -- Rendering -----------------------------------------------------------------
 
 
-def _pixel_size(width_pt: float, height_pt: float, dpi: int) -> tuple[int, int]:
-    """An upper estimate of a rendered page in pixels (rounding can add one)."""
-    return (
-        math.ceil(width_pt * dpi / 72) + 1,
-        math.ceil(height_pt * dpi / 72) + 1,
-    )
-
-
-def _fits(width_pt: float, height_pt: float, dpi: int, max_pixels: int) -> bool:
-    width_px, height_px = _pixel_size(width_pt, height_pt, dpi)
-    return (
-        width_px * height_px <= max_pixels
-        and max(width_px, height_px) <= _MAX_SIDE_PIXELS
-    )
-
-
-def _fit_dpi(rect: pymupdf.Rect, wanted: int, max_pixels: int) -> int:
-    """The DPI to render at: the wanted one, lowered for an oversized page.
-
-    Lowering is the product rule (an oversized page must not fail), bounded by
-    the pixel budget per page and by the JPEG side limit. Raises ValueError for
-    a page with no usable size, which fails the job.
-    """
-    width_pt = float(rect.width)
-    height_pt = float(rect.height)
-    if (
-        not math.isfinite(width_pt)
-        or not math.isfinite(height_pt)
-        or width_pt <= 0
-        or height_pt <= 0
-    ):
-        raise AppError(PAGE_TOO_LARGE)
-    if _fits(width_pt, height_pt, wanted, max_pixels):
-        return wanted
-
-    area_square_inches = (width_pt / 72) * (height_pt / 72)
-    limit = min(
-        float(wanted),
-        math.sqrt(max_pixels / area_square_inches),
-        _MAX_SIDE_PIXELS * 72 / max(width_pt, height_pt),
-    )
-    dpi = max(1, int(limit))
-    while dpi > 1 and not _fits(width_pt, height_pt, dpi, max_pixels):
-        dpi -= 1
-    if not _fits(width_pt, height_pt, dpi, max_pixels):
-        raise AppError(PAGE_TOO_LARGE)
-    return dpi
-
-
 def _pixmap_jpeg(pixmap: pymupdf.Pixmap, quality: int) -> bytes:
     """JPEG bytes from PyMuPDF itself (no extra copy of the pixels)."""
     return pixmap.tobytes(output="jpeg", jpg_quality=quality)
@@ -285,7 +233,7 @@ def _render_jpeg(
     """
     try:
         page = document.load_page(index)
-        dpi = _fit_dpi(page.rect, preset.dpi, max_pixels)
+        dpi = fit_render_dpi(page.rect, preset.dpi, max_pixels)
         pixmap = page.get_pixmap(dpi=dpi, alpha=False)
         try:
             return _encode_jpeg(pixmap, preset.jpeg_quality)

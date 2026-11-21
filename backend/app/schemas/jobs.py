@@ -146,6 +146,20 @@ class PdfFileResponse(BaseModel):
     download_url: str
 
 
+class CompareStats(BaseModel):
+    original_pages: int
+    revised_pages: int
+    total_pages: int
+    compared_pages: int
+    truncated: bool
+    pages_changed: int
+    overall_similarity: float
+
+
+class CompareResponse(PdfFileResponse, CompareStats):
+    pass
+
+
 class RedactResponse(PdfFileResponse):
     redacted_count: int
     metadata_scrubbed: bool

@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { CompareWorkspace } from "@/components/tools/compare-workspace";
 import { MarkdownWorkspace, RedactWorkspace } from "@/components/tools/pdf-text-workspaces";
 import { CompressWorkspace } from "@/components/tools/compress-workspace";
 import { JpgToPdfWorkspace } from "@/components/tools/jpg-to-pdf-workspace";
@@ -14,6 +15,7 @@ import { PdfToWordWorkspace } from "@/components/tools/pdf-to-word-workspace";
 // builds a tool. Returning an element (not a component) keeps the page from
 // creating components during render.
 const workspaces: Readonly<Record<string, () => ReactElement>> = {
+  "compare-pdf": () => <CompareWorkspace />,
   "redact-pdf": () => <RedactWorkspace />,
   "pdf-to-markdown": () => <MarkdownWorkspace />,
   "compress-pdf": () => <CompressWorkspace />,

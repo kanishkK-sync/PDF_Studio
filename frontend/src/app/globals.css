@@ -156,6 +156,8 @@
   /* Text-safe accents: text-accent-violet, border-accent-magenta, ... */
   --color-accent-violet: var(--accent-violet);
   --color-accent-magenta: var(--accent-magenta);
+  --color-diff-added: #00ebff;
+  --color-diff-removed: #ff20a5;
   --color-accent-amber: var(--accent-amber);
 
   /* Decorative accents: glows, orbs, large fills only. Never for text. */

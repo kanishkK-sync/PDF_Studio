@@ -43,6 +43,15 @@ function isRedaction(data: unknown): data is Redaction {
     && data.verified_unrecoverable === true;
 }
 
+export function comparePdfs(original: File, revised: File, callbacks: UploadCallbacks) {
+  const form = new FormData();
+  form.append("original", original);
+  form.append("revised", revised);
+  return postMultipart("/api/compare-pdf", form, data =>
+    isDownloadJob(data) && data.download_url === `/api/jobs/${data.job_id}/download`
+      ? data : null, callbacks);
+}
+
 function isMarkdownFile(data: unknown): data is MarkdownFile {
   return isDownloadJob(data)
     && typeof data.markdown === "string"
