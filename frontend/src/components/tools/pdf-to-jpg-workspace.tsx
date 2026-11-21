@@ -302,8 +302,7 @@ export function PdfToJpgWorkspace() {
         >
           {file && (
             <FileChip
-              name={file.name}
-              size={file.size}
+              file={file}
               disabled={busy}
               onRemove={handleRemove}
             />

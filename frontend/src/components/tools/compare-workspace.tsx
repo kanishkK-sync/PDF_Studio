@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkflowInput } from "@/lib/workflow-handoff";
 import { ArrowLeft, ArrowRight, Download, GitCompareArrows } from "lucide-react";
 import { useCallback, useState } from "react";
 import { ErrorBanner } from "@/components/tools/error-banner";
@@ -51,7 +52,7 @@ function FileSlot({ label, file, busy, onSelect, onRemove }: {
   return (
     <fieldset disabled={busy} className="grid min-w-0 content-start gap-3">
       <legend className="mb-3 font-display text-xl">{label}</legend>
-      {file ? <FileChip name={file.name} size={file.size} disabled={busy} onRemove={onRemove} /> :
+      {file ? <FileChip file={file} disabled={busy} onRemove={onRemove} /> :
         <FileDropzone label={`Choose ${label.toLowerCase()}`} accept={pdf}
           maxSizeBytes={limits.maxTotalBytes} disabled={busy}
           onSelect={value => setError(onSelect(value))} onReject={setError} />}
@@ -163,8 +164,11 @@ function ComparisonViewer({ result, originalName, revisedName, onReset }: {
 export function CompareWorkspace() {
   const job = useToolJob<Comparison>();
   const [revised, setRevised] = useState<File | null>(null);
+  const [handoffError, setHandoffError] = useState("");
+  useWorkflowInput(setRevised, setHandoffError);
   const busy = job.status === "uploading" || job.status === "processing";
   function select(file: File, original: boolean) {
+    setHandoffError("");
     const other = original ? revised : job.file;
     if (file.size + (other?.size ?? 0) > limits.maxTotalBytes) {
       return `Choose two PDFs totaling at most ${formatBytes(limits.maxTotalBytes)}.`;
@@ -186,6 +190,7 @@ export function CompareWorkspace() {
         if (job.file) job.select(job.file);
       }} />
     </div>
+    {handoffError && <ErrorBanner message={handoffError} />}
     {job.error && <ErrorBanner message={job.error.message} />}
     {busy && <ProgressBar label={job.status === "uploading" ? "Uploading PDFs" : "Comparing pages and preparing the viewer"}
       value={job.status === "uploading" ? job.progress : null} />}

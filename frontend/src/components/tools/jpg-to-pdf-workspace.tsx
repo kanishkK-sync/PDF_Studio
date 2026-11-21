@@ -111,7 +111,7 @@ function buildAnnouncement({
     case "done":
       if (!result) return "";
       if (downloaded) {
-        return "Download started. The file is deleted from this machine once it has been sent.";
+        return "Download started. The engine has released its temporary output.";
       }
       return `Done. Your PDF has ${result.page_count} ${result.page_count === 1 ? "page" : "pages"} and is ${formatBytes(result.result_size)}.`;
     case "error":
@@ -430,6 +430,7 @@ export function JpgToPdfWorkspace() {
             description={`It will download as ${result.download_name}.`}
             rows={rows}
             downloadUrl={result.download_url}
+            pdfOutputName={result.download_name}
             downloadLabel="Download PDF"
             downloaded={downloaded}
             onDownload={handleDownload}

@@ -79,6 +79,6 @@ export function MergePdfWorkspace() {
         {busy && <div className="flex w-full flex-col gap-3">{status === "uploading" ? <ProgressBar label="Uploading" value={progress} /> : <ProgressBar label="Merging PDFs" />}{status === "uploading" && <button type="button" className={secondaryButtonClass} onClick={job.cancel}><X aria-hidden="true" className="size-4" /> Cancel upload</button>}</div>}
       </div>}
     </>}
-    {status === "done" && result && <ConversionResult title="Your merged PDF is ready" description={`It will download as ${result.download_name}.`} rows={[{ label: "Files", value: String(result.file_count ?? entries.length) }, { label: "Pages", value: String(result.page_count) }, { label: "PDF", value: formatBytes(result.result_size) }]} downloadUrl={result.download_url} downloadLabel="Download PDF" downloaded={downloaded} onDownload={() => setDownloaded(true)} onReset={reset} resetLabel="Merge more PDFs" headingRef={headingRef} />}
+    {status === "done" && result && <ConversionResult title="Your merged PDF is ready" description={`It will download as ${result.download_name}.`} rows={[{ label: "Files", value: String(result.file_count ?? entries.length) }, { label: "Pages", value: String(result.page_count) }, { label: "PDF", value: formatBytes(result.result_size) }]} downloadUrl={result.download_url} pdfOutputName={result.download_name} downloadLabel="Download PDF" downloaded={downloaded} onDownload={() => setDownloaded(true)} onReset={reset} resetLabel="Merge more PDFs" headingRef={headingRef} />}
   </div>;
 }

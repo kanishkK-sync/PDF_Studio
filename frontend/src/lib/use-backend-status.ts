@@ -34,8 +34,10 @@ async function probe(signal: AbortSignal): Promise<BackendStatus> {
   }
 }
 
-export function useBackendStatus(): BackendStatus {
+export function useBackendStatus() {
   const [status, setStatus] = useState<BackendStatus>("checking");
+
+  const [latency, setLatency] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +72,7 @@ export function useBackendStatus(): BackendStatus {
         TIMEOUT_MS,
       );
 
+      const started = performance.now();
       const next = await probe(requestController.signal);
 
       window.clearTimeout(timeoutId);
@@ -79,6 +82,7 @@ export function useBackendStatus(): BackendStatus {
       // Only report real changes, never go back to "checking", and never
       // touch state after unmount.
       if (cancelled) return;
+      setLatency(next === "connected" ? Math.round(performance.now() - started) : null);
       if (next !== current) {
         current = next;
         setStatus(next);
@@ -110,5 +114,5 @@ export function useBackendStatus(): BackendStatus {
     };
   }, []);
 
-  return status;
+  return { status, latency };
 }

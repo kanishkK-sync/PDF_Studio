@@ -12,7 +12,7 @@ import {
   GitCompareArrows,
 } from "lucide-react";
 
-export type ToolCategory = "optimize" | "edit" | "from-pdf" | "to-pdf";
+export type ToolCategory = "privacy" | "extract" | "convert" | "edit";
 
 export type ToolIcon =
   | "compare"
@@ -37,10 +37,10 @@ export type Tool = {
 
 // Display order. The "All" tab is added by the UI.
 export const categories: readonly { id: ToolCategory; label: string }[] = [
-  { id: "optimize", label: "Optimize" },
-  { id: "edit", label: "Edit" },
-  { id: "from-pdf", label: "Convert from PDF" },
-  { id: "to-pdf", label: "Convert to PDF" },
+  { id: "privacy", label: "Privacy & Diff" },
+  { id: "extract", label: "AI & Extraction" },
+  { id: "convert", label: "Convert" },
+  { id: "edit", label: "Optimize & Edit" },
 ];
 
 export const tools: readonly Tool[] = [
@@ -48,28 +48,28 @@ export const tools: readonly Tool[] = [
     slug: "compare-pdf",
     title: "Visual & Structural PDF Diff",
     description: "Compare two PDFs page by page, highlighting visual and text changes.",
-    category: "edit",
+    category: "privacy",
     icon: "compare",
   },
   {
     slug: "redact-pdf",
     title: "Redact PDF",
     description: "Permanently remove matching page text and scrub metadata.",
-    category: "edit",
+    category: "privacy",
     icon: "redact",
   },
   {
     slug: "pdf-to-markdown",
     title: "PDF to AI Markdown",
     description: "Extract structured Markdown for notes and language models.",
-    category: "from-pdf",
+    category: "extract",
     icon: "markdown",
   },
   {
     slug: "compress-pdf",
     title: "Compress PDF",
     description: "Reduce the file size of a PDF.",
-    category: "optimize",
+    category: "edit",
     icon: "compress",
   },
   {
@@ -97,56 +97,56 @@ export const tools: readonly Tool[] = [
     slug: "pdf-to-word",
     title: "PDF to Word",
     description: "Convert a PDF into a Word document.",
-    category: "from-pdf",
+    category: "convert",
     icon: "word",
   },
   {
     slug: "pdf-to-powerpoint",
     title: "PDF to PowerPoint",
     description: "Convert a PDF into a PowerPoint presentation.",
-    category: "from-pdf",
+    category: "convert",
     icon: "powerpoint",
   },
   {
     slug: "pdf-to-excel",
     title: "PDF to Excel",
     description: "Convert PDF content into an Excel spreadsheet.",
-    category: "from-pdf",
+    category: "extract",
     icon: "excel",
   },
   {
     slug: "pdf-to-jpg",
     title: "PDF to JPG",
     description: "Convert PDF pages into JPG images.",
-    category: "from-pdf",
+    category: "convert",
     icon: "image",
   },
   {
     slug: "word-to-pdf",
     title: "Word to PDF",
     description: "Convert a Word document into a PDF.",
-    category: "to-pdf",
+    category: "convert",
     icon: "word",
   },
   {
     slug: "powerpoint-to-pdf",
     title: "PowerPoint to PDF",
     description: "Convert a PowerPoint presentation into a PDF.",
-    category: "to-pdf",
+    category: "convert",
     icon: "powerpoint",
   },
   {
     slug: "excel-to-pdf",
     title: "Excel to PDF",
     description: "Convert an Excel spreadsheet into a PDF.",
-    category: "to-pdf",
+    category: "convert",
     icon: "excel",
   },
   {
     slug: "jpg-to-pdf",
     title: "JPG to PDF",
     description: "Convert JPG images into a PDF.",
-    category: "to-pdf",
+    category: "convert",
     icon: "image",
   },
 ];

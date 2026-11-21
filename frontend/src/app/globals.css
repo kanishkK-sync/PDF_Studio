@@ -1,53 +1,3 @@
-/*
- * ============================================================================
- *  pdf-studio · globals.css · design system
- * ============================================================================
- *
- *  THEME MECHANISM
- *    next-themes puts a `dark` class on <html>. Dark is the default and system
- *    detection is off, so theme-provider.tsx must use:
- *      attribute="class"  defaultTheme="dark"  enableSystem={false}
- *    Light values live on :root, dark values on .dark. Tailwind's `dark:`
- *    variant is bound to the same class.
- *
- *  FONTS (layout.tsx must set these exact CSS variable names via next/font/google)
- *    Display : Fraunces   -> Fraunces({ variable: "--font-fraunces" })
- *    UI sans : Geist Sans -> Geist({ variable: "--font-geist-sans" })
- *    Both variable classNames go on <html>.
- *
- *  PALETTE (exact values)
- *                      dark         light
- *    background        #0b0912      #faf7f2
- *    surface           #13111d      #ffffff
- *    surface-raised    #1b1827      #f4efe6
- *    border            #ffffff1a    #15121d1f   (10% white / 12% ink)
- *    foreground        #f2eff8      #15121d
- *    muted text        #a49fb8      #5c566b
- *    focus ring        = text-safe violet of the active theme
- *
- *  ACCENT: three stops (violet, magenta, amber), two sets
- *    Text-safe (per theme; for text, icons, UI borders, focus ring):
- *                      dark         light
- *      violet          #a78bfa      #6d28d9
- *      magenta         #f472b6      #be185d
- *      amber           #fbbf24      #a14a07
- *    Decorative (one set, shared by both themes; glows, orbs, large fills only,
- *    never text): violet #8b5cf6, magenta #ec4899, amber #f59e0b
- *
- *  CONTRAST (WCAG 2.x, text-safe stops against the theme background)
- *                      dark         light
- *      violet          7.27:1       6.65:1
- *      magenta         7.47:1       5.65:1
- *      amber           11.84:1      5.62:1
- *    Lowest on any surface: 6.40:1 in dark (violet on surface-raised), 5.24:1 in
- *    light (amber on surface-raised). Every text-safe stop clears 4.5:1 on every
- *    surface in both themes. Foreground is 17.40:1 / 17.30:1, muted text is
- *    7.75:1 / 6.55:1 against the background.
- *
- *  EASING: mirrored exactly in src/lib/motion.ts. Change both together.
- * ============================================================================
- */
-
 @import "tailwindcss";
 
 /* Bind the dark: variant to the .dark class that next-themes sets on <html>. */
@@ -58,86 +8,39 @@
    THEME TOKENS
    ========================================================================== */
 
-/* ── Accent stops, defined once ───────────────────────────────────────────
-   Decorative set: shared by both themes, used for glows, orbs and large fills.
-   Glow shadows below are derived from these with color-mix(), so changing a
-   stop here updates the glows too. */
 :root {
-  --accent-violet-deco: #8b5cf6;
-  --accent-magenta-deco: #ec4899;
-  --accent-amber-deco: #f59e0b;
-
-  --gradient-accent: linear-gradient(
-    135deg,
-    var(--accent-violet-deco),
-    var(--accent-magenta-deco),
-    var(--accent-amber-deco)
-  );
-  --gradient-accent-text: linear-gradient(
-    135deg,
-    var(--accent-violet),
-    var(--accent-magenta),
-    var(--accent-amber)
-  );
-}
-
-/* ── Light theme (default values on :root) ────────────────────────────────── */
-:root {
-  --background: #faf7f2;
-  --foreground: #15121d;
+  --background: #f6f7fa;
+  --foreground: #181821;
   --surface: #ffffff;
-  --surface-raised: #f4efe6;
-  --border: #15121d1f;
-  --muted: #5c566b;
-
-  /* Text-safe accent set */
-  --accent-violet: #6d28d9;
-  --accent-magenta: #be185d;
-  --accent-amber: #a14a07;
+  --surface-raised: #ededf4;
+  --border: #cfd1dc;
+  --muted: #555968;
+  --accent-violet: #5844ab;
+  --accent-magenta: #a22b69;
+  --accent-amber: #885419;
+  --accent-violet-deco: #8472df;
+  --accent-magenta-deco: #aa84df;
+  --accent-amber-deco: #b68867;
   --ring: var(--accent-violet);
-
-  /* Elevation: glows are softer in light */
-  --elevation-soft: 0 1px 2px #15121d0f, 0 12px 32px -16px #15121d24;
-  --elevation-glow:
-    0 0 0 1px color-mix(in srgb, var(--accent-violet-deco) 18%, transparent),
-    0 10px 36px -12px color-mix(in srgb, var(--accent-violet-deco) 28%, transparent);
-  --elevation-glow-strong:
-    0 0 0 1px color-mix(in srgb, var(--accent-magenta-deco) 28%, transparent),
-    0 14px 48px -10px color-mix(in srgb, var(--accent-violet-deco) 35%, transparent),
-    0 6px 24px -8px color-mix(in srgb, var(--accent-magenta-deco) 22%, transparent);
-
-  /* Film grain: ink-coloured noise, lower opacity on paper */
-  --grain-opacity: 0.04;
-  --grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.07 0 0 0 0 0.11 1.2 0 0 0 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --gradient-accent: linear-gradient(120deg, #8978dd, #b2a2fe);
+  --gradient-accent-text: linear-gradient(120deg, var(--foreground), var(--accent-violet));
+  --specular: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --elevation-soft: var(--specular), 0 3px 12px #0707100a;
+  --elevation-glow: var(--specular), 0 2px 6px #08081117;
+  --elevation-glow-strong: var(--specular), 0 4px 16px #08081120;
+  --engine-ready: #16724d;
 }
-
-/* ── Dark theme (must come after :root) ───────────────────────────────────── */
 .dark {
-  --background: #0b0912;
-  --foreground: #f2eff8;
-  --surface: #13111d;
-  --surface-raised: #1b1827;
-  --border: #ffffff1a;
-  --muted: #a49fb8;
-
-  /* Text-safe accent set */
-  --accent-violet: #a78bfa;
-  --accent-magenta: #f472b6;
-  --accent-amber: #fbbf24;
-  --ring: var(--accent-violet);
-
-  --elevation-soft: 0 1px 2px #00000066, 0 12px 32px -16px #000000a6;
-  --elevation-glow:
-    0 0 0 1px color-mix(in srgb, var(--accent-violet-deco) 30%, transparent),
-    0 10px 40px -10px color-mix(in srgb, var(--accent-violet-deco) 50%, transparent);
-  --elevation-glow-strong:
-    0 0 0 1px color-mix(in srgb, var(--accent-magenta-deco) 45%, transparent),
-    0 14px 56px -8px color-mix(in srgb, var(--accent-violet-deco) 65%, transparent),
-    0 6px 28px -6px color-mix(in srgb, var(--accent-magenta-deco) 40%, transparent);
-
-  /* Film grain: white noise */
-  --grain-opacity: 0.08;
-  --grain-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.2 0 0 0 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --background: #0a0b0e;
+  --foreground: #f2f3f7;
+  --surface: #121318;
+  --surface-raised: #1b1c24;
+  --border: #303139;
+  --muted: #a6a8b5;
+  --accent-violet: #bcafff;
+  --accent-magenta: #ee9ac4;
+  --accent-amber: #f0c284;
+  --engine-ready: #80ddb4;
 }
 
 /* ── Runtime variables exposed to Tailwind ────────────────────────────────
@@ -169,8 +72,7 @@
   --shadow-glow: var(--elevation-glow);
   --shadow-glow-strong: var(--elevation-glow-strong);
 
-  /* next/font sets --font-fraunces and --font-geist-sans (see header). */
-  --font-display: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
+  --font-display: var(--font-geist-sans), system-ui, sans-serif;
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }
@@ -181,8 +83,8 @@
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
   --radius-lg: 0.875rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.75rem;
+  --radius-xl: .85rem;
+  --radius-2xl: 1rem;
 
   /* Spacing */
   --spacing-gutter: clamp(1rem, 4vw, 2rem);
@@ -203,16 +105,6 @@
 
   --default-transition-timing-function: var(--ease-soft-in-out);
 }
-
-/* ── Film grain: static noise texture for film-grain.tsx ──────────────────
-   The component adds its own fixed / inset-0 / pointer-events-none / aria-hidden.
-   No animation. Tune strength with --grain-opacity above. */
-@utility film-grain {
-  background-image: var(--grain-texture);
-  background-size: 200px 200px;
-  opacity: var(--grain-opacity);
-}
-
 
 /* ============================================================================
    BASE LAYER
@@ -252,3 +144,86 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Workstation surfaces */
+html { scrollbar-gutter: stable; }
+body:has(.command-dialog[open]) { overflow: hidden; }
+body {
+  background-image: radial-gradient(color-mix(in srgb, var(--muted) 15%, transparent) .7px, transparent .8px);
+  background-size: 18px 18px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .scroll-reveal { transition: opacity 380ms ease-out, transform 380ms cubic-bezier(.22,1,.36,1); }
+  .scroll-reveal[data-pending] { opacity: 0; transform: translate3d(0,16px,0); }
+}
+.studio-shell, .studio-nav nav { width: min(100% - 2.5rem, 74rem); margin-inline: auto; }
+.studio-nav { position: fixed; inset: 0 0 auto; z-index: 40; border-bottom: 1px solid var(--border); background: var(--background); }
+.studio-nav[data-compact] { background: color-mix(in srgb, var(--background) 85%, transparent); backdrop-filter: blur(24px); }
+.studio-nav nav { display:flex; height: 4.3rem; align-items:center; justify-content:space-between; transition:height .2s; }
+.studio-nav[data-compact] nav { height:3.5rem; }
+.scroll-progress { position:absolute; inset:0 0 auto; height:2px; background:var(--accent-violet); transform-origin:left; transform:scaleX(0); }
+.brand, .brand span, .engine-pill, .search-trigger, .studio-primary, .studio-secondary, .telemetry-tags, .trust-strip span, .command-hints span { display:inline-flex; align-items:center; gap:.6rem; }
+.brand { font-weight:650; font-size:1.13rem; letter-spacing:-.05em; }
+.brand span, .tile-icon { display:grid; place-items:center; color:var(--accent-violet); background:var(--surface-raised); border:1px solid var(--border); border-radius:.5rem; box-shadow:var(--specular); }
+.brand span { width:2rem; height:2rem; }
+.engine-pill, .telemetry-tags, .tile-category, .tile-index, .trust-strip, .file-telemetry, .command-hints, kbd { font-family:ui-monospace, SFMono-Regular, Consolas, monospace; }
+.engine-pill, .search-trigger { font-size:.74rem; border:1px solid var(--border); color:var(--muted); background:var(--surface); padding:.45rem .65rem; border-radius:.45rem; }
+.engine-pill b { font-weight:400; }
+.engine-pill i, .telemetry-tags i { display:inline-block; width:.43rem; height:.43rem; border-radius:50%; background:var(--accent-amber); }
+.engine-pill[data-status=connected] i, .telemetry-tags i { background:var(--engine-ready); }
+.search-trigger kbd { font-size:.68rem; border:1px solid var(--border); border-radius:.25rem; padding:.05rem .3rem; }
+.studio-hero { position:relative; isolation:isolate; display:grid; grid-template-columns:1.1fr .9fr; align-items:center; padding:clamp(7rem, 12vw, 10rem) 0 clamp(3rem, 6vw, 5rem); gap:2rem; }
+.studio-hero h1 { font-weight:600; font-size:clamp(3.4rem,7vw,6.6rem); line-height:.98; letter-spacing:-.073em; margin:1.5rem 0; }
+.studio-hero em { font-style:normal; color:var(--accent-violet); }
+.telemetry-tags { flex-wrap:wrap; gap:.4rem; font-size:.62rem; text-transform:uppercase; letter-spacing:.065em; color:var(--muted); }
+.telemetry-tags span { display:inline-flex; align-items:center; gap:.45rem; border:1px solid var(--border); padding:.3rem .5rem; border-radius:.3rem; background:var(--surface); }
+.studio-primary,.studio-secondary { justify-content:center; min-height:2.7rem; padding:.6rem 1rem; border-radius:.5rem; font-size:.86rem; font-weight:550; box-shadow:var(--specular); }
+.studio-primary { background:var(--foreground); color:var(--background); }
+.studio-secondary { color:var(--foreground); border:1px solid var(--border); background:var(--surface); }
+.document-drawing { position:relative; display:grid; place-items:center; height:20rem; background-image:linear-gradient(var(--border) 1px, transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size:32px 32px; mask-image:radial-gradient(ellipse,#000 28%,transparent 74%); }
+.paper-stack { position:relative; width:11rem; height:14rem; transform:perspective(800px) rotateX(38deg) rotateZ(-32deg); transform-style:preserve-3d; }
+.paper-layer { position:absolute; inset:0; border:1px solid color-mix(in srgb,var(--accent-violet) 60%, var(--border)); border-radius:.45rem; box-shadow:var(--specular),0 10px 20px #0002; background:var(--surface); }
+.paper-back { transform:translate(-21px,30px); } .paper-mid { transform:translate(-11px,15px); background:var(--surface-raised); }
+.paper-front { padding:1.45rem 1.2rem; background:linear-gradient(130deg,color-mix(in srgb,var(--accent-violet) 18%,var(--surface)),var(--surface)); }
+.paper-spine { width:1.4rem; height:1.4rem; border:2px solid var(--accent-violet); border-radius:.25rem; }
+.paper-title { margin-top:1rem; width:65%; height:5px; background:var(--accent-violet); }
+.paper-lines { margin:.65rem 0; height:2.4rem; background:repeating-linear-gradient(transparent 0 6px,var(--border) 6px 8px); }
+.paper-chart { display:flex; height:2.7rem; gap:5px; align-items:end; border-bottom:1px solid var(--accent-violet); }
+.paper-chart i { flex:1; height:45%; background:var(--accent-violet-deco); } .paper-chart i:nth-child(2n){height:75%} .paper-chart i:nth-child(3n){height:60%} .paper-chart i:last-child{height:95%}
+.studio-heading { font-size:clamp(1.6rem,3vw,2.15rem); font-weight:570; letter-spacing:-.045em; margin-bottom:1.15rem; }
+.studio-tabs { display:flex; flex-wrap:wrap; gap:.25rem; border-block:1px solid var(--border); padding:.65rem 0; }
+.tool-directory { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.75rem; margin-top:1rem; }
+.directory-feature { grid-column:span 2; }
+.spotlight-card { position:relative; isolation:isolate; height:100%; border:1px solid var(--border); background:var(--surface); border-radius:.75rem; box-shadow:var(--specular); }
+.spotlight-card:before,.spotlight-card:after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .18s; background:radial-gradient(230px circle at var(--mouse-x,50%) var(--mouse-y,50%),color-mix(in srgb,var(--accent-violet) 13%, transparent),transparent); }
+.spotlight-card:after { inset:-1px; padding:1px; mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); mask-composite:exclude; background:radial-gradient(140px circle at var(--mouse-x,50%) var(--mouse-y,50%),var(--accent-violet),transparent); }
+@media (hover:hover) { .spotlight-card:hover:before,.spotlight-card:hover:after { opacity:1; } }
+.tool-tile { position:relative; z-index:1; display:block; height:100%; padding:1.15rem; border-radius:inherit; }
+.tile-icon { width:2.2rem; height:2.2rem; }
+.tile-index,.tile-category { color:var(--muted); font-size:.64rem; letter-spacing:.08em; }
+.tile-index { border:1px solid var(--border); padding:.08rem .35rem; border-radius:3px; }
+.tile-category { display:block; text-transform:uppercase; margin:1.25rem 0 .45rem; }
+.tile-arrow { color:var(--muted); transition:transform .18s; }
+.tool-tile:hover .tile-arrow,.tool-tile:focus-visible .tile-arrow { transform:translate(2px,-2px); color:var(--accent-violet); }
+.directory-feature .spotlight-card { background:linear-gradient(115deg,var(--surface) 50%,color-mix(in srgb,var(--surface) 86%,var(--accent-violet))); }
+.pipeline { margin:clamp(3rem,7vw,6rem) 0 0; }
+.pipeline-grid { display:grid; grid-template-columns:repeat(3,1fr); background:var(--surface); border:1px solid var(--border); border-radius:.75rem; box-shadow:var(--specular); }
+.pipeline-grid li { padding:1.4rem; } .pipeline-grid li+li { border-left:1px solid var(--border); }
+.pipeline-grid svg,.pipeline-grid h3 span { color:var(--accent-violet); } .pipeline-grid h3 { margin:.9rem 0 .4rem; font-weight:600; }
+.pipeline-grid p { color:var(--muted); font-size:.88rem; }
+.trust-strip,.file-telemetry { display:flex; flex-wrap:wrap; gap:.65rem 1.5rem; font-size:.72rem; color:var(--muted); }
+.trust-strip { margin-top:1rem; } .trust-strip svg { width:14px; height:14px; }
+.file-telemetry { padding:.55rem .75rem; border:1px solid var(--border); border-radius:.45rem; background:var(--surface); }
+.command-dialog { inset:0; margin:0; width:100%; height:100%; max-width:none; max-height:none; background:transparent; color:var(--foreground); padding: min(12vh,6rem) 1rem 1rem; }
+.command-dialog::backdrop { background:#080810ab; backdrop-filter:blur(5px); }
+.command-inner { margin:0 auto; width:min(100%,36rem); border:1px solid var(--border); border-radius:.85rem; background:var(--surface); box-shadow:var(--specular),0 20px 90px #0005; }
+.command-input,.command-hints,.command-inner li { display:flex; align-items:center; gap:.75rem; padding:.8rem 1rem; }
+.command-input { border-bottom:1px solid var(--border); } .command-input input { flex:1; min-width:0; padding:.3rem; }
+.command-inner ul { padding:.3rem; max-height:50dvh; overflow:auto; overscroll-behavior:contain; }
+.command-inner li { cursor:pointer; border-radius:.45rem; font-size:.88rem; } .command-inner li[aria-selected=true] { background:var(--surface-raised); }
+.command-inner li small { margin-left:auto; color:var(--muted); }
+.command-hints { border-top:1px solid var(--border); color:var(--muted); font-size:.7rem; }
+@media(max-width:850px){ .tool-directory{grid-template-columns:repeat(3,minmax(0,1fr))} .studio-hero{grid-template-columns:1.2fr .8fr} }
+@media(max-width:650px){ .studio-shell,.studio-nav nav{width:calc(100% - 2rem)} .studio-hero{display:block} .document-drawing{display:none} .tool-directory{grid-template-columns:repeat(2,minmax(0,1fr))} .pipeline-grid{grid-template-columns:1fr} .pipeline-grid li+li{border-left:0;border-top:1px solid var(--border)} .search-trigger span,.engine-pill span{display:none} .command-inner li small{display:none} }
+@media(max-width:430px){ .tool-directory{grid-template-columns:1fr} .directory-feature{grid-column:auto} .search-trigger kbd{display:none} }

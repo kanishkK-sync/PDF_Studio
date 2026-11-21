@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkflowInput } from "@/lib/workflow-handoff";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -43,6 +44,7 @@ const ACCEPT = { "application/pdf": [".pdf"] };
 export type PdfConvertResult = {
   job_id: string;
   download_url: string;
+  download_name?: string;
 };
 
 // How one finished job is shown. Built by the tool, shown by the workspace.
@@ -120,7 +122,7 @@ function buildAnnouncement({
       return busyAnnouncement;
     case "done":
       return downloaded
-        ? "Download started. The file is deleted from this machine once it has been sent."
+        ? "Download started. The engine has released its temporary output."
         : resultAnnouncement;
     case "error":
       // The error banner has role alert and announces itself.
@@ -153,6 +155,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
   const { status, file, progress, result, error } = job;
 
   const [rejection, setRejection] = useState<string | null>(null);
+  useWorkflowInput(job.select, setRejection);
   const [downloaded, setDownloaded] = useState(false);
   const [cancelled, setCancelled] = useState(false);
 
@@ -289,8 +292,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
         >
           {file && (
             <FileChip
-              name={file.name}
-              size={file.size}
+              file={file}
               disabled={busy}
               onRemove={handleRemove}
             />
@@ -371,6 +373,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
             description={summary.description}
             rows={summary.rows}
             downloadUrl={result.download_url}
+            pdfOutputName={result.download_name?.toLowerCase().endsWith(".pdf") ? result.download_name : undefined}
             downloadLabel={summary.downloadLabel}
             downloaded={downloaded}
             onDownload={handleDownload}

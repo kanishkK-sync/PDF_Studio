@@ -1,9 +1,6 @@
 "use client";
 
-import { motion, type Transition } from "framer-motion";
 import type { KeyboardEvent } from "react";
-import { microTransition } from "@/lib/motion";
-import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { cn } from "@/lib/utils";
 import type { CategoryFilter } from "@/store/ui-store";
 
@@ -15,17 +12,12 @@ type CategoryTabsProps = {
   onChange: (id: CategoryFilter) => void;
 };
 
-// Under reduced motion the active indicator snaps instead of sliding.
-const instant: Transition = { duration: 0 };
-
 // tool-grid.tsx builds the same ids for the tabpanel's aria-labelledby.
 function tabId(id: CategoryFilter): string {
   return `tab-${id}`;
 }
 
 export function CategoryTabs({ categories, activeId, onChange }: CategoryTabsProps) {
-  const reduced = useReducedMotionSafe();
-
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const current = categories.findIndex((tab) => tab.id === activeId);
     let next: number;
@@ -58,7 +50,7 @@ export function CategoryTabs({ categories, activeId, onChange }: CategoryTabsPro
       role="tablist"
       aria-label="Filter tools by category"
       onKeyDown={handleKeyDown}
-      className="flex flex-wrap justify-center gap-2"
+      className="studio-tabs"
     >
       {categories.map((tab) => {
         const isActive = tab.id === activeId;
@@ -74,18 +66,10 @@ export function CategoryTabs({ categories, activeId, onChange }: CategoryTabsPro
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "relative rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-300",
-              isActive ? "text-foreground" : "text-muted hover:text-foreground",
+              "rounded-md px-3 py-2 text-sm font-medium",
+              isActive ? "bg-surface-raised text-foreground shadow-soft" : "text-muted hover:text-foreground",
             )}
           >
-            {isActive && (
-              <motion.span
-                layoutId="activeTab"
-                aria-hidden="true"
-                transition={reduced ? instant : microTransition}
-                className="absolute inset-0 rounded-full border border-border bg-surface-raised shadow-soft"
-              />
-            )}
             <span className="relative">{tab.label}</span>
           </button>
         );

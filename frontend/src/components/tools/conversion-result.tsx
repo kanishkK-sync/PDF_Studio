@@ -1,5 +1,6 @@
 "use client";
 
+import { PdfOutputActions } from "@/components/tools/pdf-output-actions";
 import { motion } from "framer-motion";
 import { Download, RotateCcw } from "lucide-react";
 import { useId, useRef, type MouseEvent, type ReactNode, type Ref } from "react";
@@ -24,6 +25,7 @@ type ConversionResultProps = {
   children?: ReactNode;
   // The contract's relative download_url; resolved against the API host here.
   downloadUrl: string;
+  pdfOutputName?: string;
   downloadLabel: string;
   // True once the download link was clicked. The server deletes the file
   // after sending it, so a second download cannot work.
@@ -46,6 +48,7 @@ export function ConversionResult({
   rows,
   children,
   downloadUrl,
+  pdfOutputName,
   downloadLabel,
   downloaded,
   onDownload,
@@ -98,6 +101,8 @@ export function ConversionResult({
       </dl>}
       {children}
 
+      {pdfOutputName ? <PdfOutputActions key={downloadUrl} url={downloadUrl} name={pdfOutputName}
+        downloadLabel={downloadLabel} resetLabel={resetLabel} onDownload={onDownload} onReset={onReset} /> : <>
       <div className="flex flex-col gap-3 sm:flex-row">
         <motion.a
           href={buildDownloadUrl(downloadUrl)}
@@ -136,6 +141,7 @@ export function ConversionResult({
           ? "Downloaded. The file has been deleted from this machine."
           : "Once you download it, the file is deleted from this machine."}
       </p>
+      </>}
     </section>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useWorkflowInput } from "@/lib/workflow-handoff";
 import { motion } from "framer-motion";
 import { Minimize2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -89,7 +90,7 @@ function buildAnnouncement({
     case "done":
       if (!result) return "";
       if (downloaded) {
-        return "Download started. The file is deleted from this machine once it has been sent.";
+        return "Download started. The engine has released its temporary output.";
       }
       return result.already_optimized
         ? "This PDF is already optimized, so the original was kept."
@@ -110,6 +111,7 @@ export function CompressWorkspace() {
 
   const [level, setLevel] = useState<Level>("balanced");
   const [rejection, setRejection] = useState<string | null>(null);
+  useWorkflowInput(job.select, setRejection);
   const [downloaded, setDownloaded] = useState(false);
   const [cancelled, setCancelled] = useState(false);
 
@@ -232,8 +234,7 @@ export function CompressWorkspace() {
         >
           {file && (
             <FileChip
-              name={file.name}
-              size={file.size}
+              file={file}
               disabled={busy}
               onRemove={handleRemove}
             />
@@ -304,7 +305,6 @@ export function CompressWorkspace() {
         >
           <ResultPanel
             result={result}
-            downloaded={downloaded}
             onDownload={handleDownload}
             onReset={handleAnother}
             headingRef={resultHeadingRef}

@@ -6,25 +6,18 @@ import {
   useMotionValue,
   useTransform,
 } from "framer-motion";
-import { Download, RotateCcw } from "lucide-react";
-import { useEffect, useId, useRef, type MouseEvent, type Ref } from "react";
-import { buildDownloadUrl, type CompressResult } from "@/lib/api";
+import { PdfOutputActions } from "@/components/tools/pdf-output-actions";
+import { useEffect, useId, type Ref } from "react";
+import type { CompressResult } from "@/lib/api";
 import { formatBytes, formatPercent } from "@/lib/format";
 import {
   durations,
-  microInteractions,
-  microInteractionsReduced,
-  microTransition,
   smoothOut,
 } from "@/lib/motion";
-import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 
 type ResultPanelProps = {
   result: CompressResult;
-  // True once the download link was clicked. The server deletes the file
-  // after sending it, so a second download cannot work.
-  downloaded: boolean;
   onDownload: () => void;
   onReset: () => void;
   resetLabel?: string;
@@ -32,23 +25,15 @@ type ResultPanelProps = {
   headingRef?: Ref<HTMLHeadingElement>;
 };
 
-const primaryClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-accent-violet px-6 text-sm font-medium text-background shadow-glow";
-const secondaryClass =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border bg-surface-raised px-6 text-sm font-medium text-foreground";
-
 export function ResultPanel({
   result,
-  downloaded,
   onDownload,
   onReset,
   resetLabel = "Compress another",
   headingRef,
 }: ResultPanelProps) {
   const reduced = useReducedMotionSafe();
-  const interactions = reduced ? microInteractionsReduced : microInteractions;
   const headingId = useId();
-  const downloadStarted = useRef(false);
 
   const optimized = result.already_optimized;
   const target = Number.isFinite(result.saved_percent)
@@ -72,15 +57,6 @@ export function ResultPanel({
       controls.stop();
     };
   }, [count, reduced, target]);
-
-  function handleDownloadClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (downloaded || downloadStarted.current) {
-      event.preventDefault();
-      return;
-    }
-    downloadStarted.current = true;
-    onDownload();
-  }
 
   return (
     <section
@@ -164,44 +140,8 @@ export function ResultPanel({
         </>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <motion.a
-          href={buildDownloadUrl(result.download_url)}
-          aria-disabled={downloaded}
-          aria-label="Download PDF"
-          tabIndex={downloaded ? -1 : 0}
-          onClick={handleDownloadClick}
-          whileHover={downloaded ? undefined : interactions.hover}
-          whileTap={downloaded ? undefined : interactions.tap}
-          transition={microTransition}
-          className={cn(
-            primaryClass,
-            "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet",
-            downloaded && "pointer-events-none opacity-60",
-          )}
-        >
-          <Download aria-hidden="true" className="size-4" />
-          {downloaded ? "Downloaded" : "Download PDF"}
-        </motion.a>
-
-        <motion.button
-          type="button"
-          onClick={onReset}
-          whileHover={interactions.hover}
-          whileTap={interactions.tap}
-          transition={microTransition}
-          className={`${secondaryClass} focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet`}
-        >
-          <RotateCcw aria-hidden="true" className="size-4" />
-          {resetLabel}
-        </motion.button>
-      </div>
-
-      <p className="text-xs leading-relaxed text-muted">
-        {downloaded
-          ? "Downloaded. The file has been deleted from this machine."
-          : "Once you download it, the file is deleted from this machine."}
-      </p>
+      <PdfOutputActions key={result.job_id} url={result.download_url} name={`${result.original_name}-compressed.pdf`}
+        downloadLabel="Download PDF" resetLabel={resetLabel} onDownload={onDownload} onReset={onReset} />
     </section>
   );
 }
