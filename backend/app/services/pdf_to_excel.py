@@ -37,7 +37,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from app.core.config import get_settings
 from app.core.errors import NO_CONTENT, PROCESSING_FAILED, TOO_MANY_PAGES, AppError
-from app.services.pdf_common import ConcurrencyGate, open_pdf_document
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ _FAILED_MESSAGE = (
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 _ILLEGAL_TITLE_CHARS = re.compile(r"[\[\]:*?/\\]")
 
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 

@@ -122,7 +122,7 @@ Backend (`backend/.env`, or real environment variables). Restart `uvicorn` after
 | --- | --- | --- |
 | `MAX_UPLOAD_MB` | `100` | Largest upload the backend accepts, in MB. For JPG to PDF it limits the total size of all images together. |
 | `JOB_TTL_MINUTES` | `30` | Age after which the sweeper deletes a job. |
-| `MAX_CONCURRENT_JOBS` | `2` | How many jobs of each tool run at the same time. Extra jobs wait. |
+| `MAX_CONCURRENT_JOBS` | `1` | Compatibility setting. PyMuPDF jobs are serialized by one shared gate across all tools in each server process; increasing this value does not enable parallel PyMuPDF work. |
 | `MAX_PDF_PAGES` | `300` | Most pages converted in one PDF to JPG job. |
 | `MAX_IMAGES` | `50` | Most images accepted in one JPG to PDF job. |
 | `MAX_MERGE_FILES` | `20` | Most PDFs accepted in one merge job. |
@@ -159,7 +159,7 @@ Frontend (`frontend/.env.local`). Restart `npm run dev` after changing any of th
 | `GET /api/jobs/{job_id}/download` | Sends the result, then deletes the job. The file is a PDF, a JPG or a ZIP depending on the job, named `<name>-compressed.pdf`, `<name>.jpg`, `<name>-jpg.zip`, `<first image name>.pdf` or `images.pdf`. A second request, an unknown id or an expired id gives 404 `job_not_found`. |
 | `DELETE /api/jobs/{job_id}` | Deletes a job. Always answers 204, even for unknown ids, and is safe to repeat. |
 
-Errors from these routes look like `{"error": {"code": "...", "message": "..."}}`. Codes include `not_pdf`, `not_image`, `not_office`, `encrypted`, `corrupt`, `too_large`, `too_many_files`, `too_many_pages`, `invalid_level`, `invalid_quality`, `invalid_page_size`, `invalid_ranges`, `invalid_request`, `no_content`, `no_match`, `job_not_found`, `processing_failed`, and `internal_error`.
+Errors from these routes look like `{"error": {"code": "...", "message": "..."}}`. Codes include `not_pdf`, `not_image`, `not_office`, `encrypted`, `corrupt`, `too_large`, `too_many_files`, `too_many_pages`, `page_too_large`, `invalid_level`, `invalid_quality`, `invalid_page_size`, `invalid_ranges`, `invalid_request`, `no_content`, `no_match`, `no_text`, `job_not_found`, `processing_failed`, and `internal_error`.
 
 ## How long files live
 

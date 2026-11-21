@@ -26,7 +26,7 @@ from app.core.errors import (
     TOO_MANY_PAGES,
     AppError,
 )
-from app.services.pdf_common import ConcurrencyGate, open_pdf_document
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ _FAILED_MESSAGE = (
     "Something went wrong while merging your PDFs. Please try again."
 )
 
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 
@@ -70,11 +70,12 @@ def merge_pdfs(input_paths: list[Path], output_dir: Path) -> PdfMergeResult:
 def _merge_locked(input_paths: list[Path], output_dir: Path) -> PdfMergeResult:
     settings = get_settings()
     work_dir = Path(tempfile.mkdtemp(prefix=_WORK_PREFIX, dir=output_dir))
-    merged = pymupdf.open()
+    merged: pymupdf.Document | None = None
     all_tocs: list[list[object]] = []
     total_pages = 0
 
     try:
+        merged = pymupdf.open()
         for position, input_path in enumerate(input_paths, start=1):
             try:
                 source = open_pdf_document(input_path)
@@ -139,7 +140,7 @@ def _merge_locked(input_paths: list[Path], output_dir: Path) -> PdfMergeResult:
             result_name=RESULT_PDF,
         )
     finally:
-        if not merged.is_closed:
+        if merged is not None and not merged.is_closed:
             merged.close()
         shutil.rmtree(work_dir, ignore_errors=True)
 

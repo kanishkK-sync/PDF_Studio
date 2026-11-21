@@ -6,12 +6,19 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.core.errors import NO_MATCH, PROCESSING_FAILED, AppError
-from app.services.pdf_common import ConcurrencyGate, open_pdf_document
+from app.core.config import get_settings
+from app.core.errors import (
+    NO_MATCH,
+    NO_TEXT,
+    PROCESSING_FAILED,
+    TOO_MANY_PAGES,
+    AppError,
+)
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 RESULT_NAME = "result.pdf"
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 
@@ -31,8 +38,12 @@ def edit_pdf(
         with _gate.hold():
             document = open_pdf_document(input_path)
             try:
+                if document.page_count > get_settings().max_pdf_pages:
+                    raise AppError(TOO_MANY_PAGES)
                 count = 0
+                has_text = False
                 for page in document:
+                    has_text = has_text or bool(page.get_text().strip())
                     matches = page.search_for(old_text)
                     if not matches:
                         continue
@@ -41,7 +52,7 @@ def edit_pdf(
                         page.add_redact_annot(rect, text=new_text, fontsize=8, fill=(1, 1, 1))
                     page.apply_redactions(images=0, graphics=0)
                 if count == 0:
-                    raise AppError(NO_MATCH)
+                    raise AppError(NO_MATCH if has_text else NO_TEXT)
                 with tempfile.NamedTemporaryFile(
                     suffix=".pdf", dir=output_dir, delete=False
                 ) as temp:

@@ -1,6 +1,7 @@
 """End-to-end checks for Office conversion and PDF text replacement."""
 
 import io
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -70,6 +71,31 @@ def test_wrong_office_type_uses_shared_error(storage_dir: Path) -> None:
         )
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "not_office"
+
+
+@pytest.mark.parametrize(
+    ("kind", "part"),
+    [
+        ("word", "word/document.xml"),
+        ("powerpoint", "ppt/presentation.xml"),
+        ("excel", "xl/workbook.xml"),
+    ],
+)
+def test_malformed_office_xml_is_rejected_and_cleaned(
+    storage_dir: Path, kind: str, part: str
+) -> None:
+    with io.BytesIO() as buffer:
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr(part, "<broken")
+        content = buffer.getvalue()
+    with TestClient(app) as client:
+        response = client.post(
+            f"/api/{kind}-to-pdf", files={"file": ("broken.zip", content)}
+        )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "not_office"
+    files = [str(path.relative_to(storage_dir)) for path in storage_dir.rglob("*") if path.is_file()]
+    assert files == []
 
 
 def test_edit_pdf_replaces_searchable_text(

@@ -47,8 +47,14 @@ from pptx.text.text import TextFrame
 from pptx.util import Emu, Pt
 
 from app.core.config import get_settings
-from app.core.errors import INVALID_REQUEST, PROCESSING_FAILED, TOO_MANY_PAGES, AppError
-from app.services.pdf_common import ConcurrencyGate, open_pdf_document
+from app.core.errors import (
+    INVALID_REQUEST,
+    PAGE_TOO_LARGE,
+    PROCESSING_FAILED,
+    TOO_MANY_PAGES,
+    AppError,
+)
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +92,7 @@ _BOLD_FLAG = 16
 # feed and carriage return, lone surrogates, and the two non-characters.
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
 
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 
@@ -202,7 +208,7 @@ def _slide_size(width_pt: float, height_pt: float) -> tuple[int, int]:
     to the range python-pptx accepts, so rounding can never make it refuse.
     """
     if not _is_usable_size(width_pt, height_pt):
-        raise ValueError("page has no usable size")
+        raise AppError(PAGE_TOO_LARGE)
     scale = 1.0
     shortest = min(width_pt, height_pt)
     if shortest < _MIN_SLIDE_POINTS:
@@ -222,7 +228,7 @@ def _placement(
 ) -> _Placement:
     """Scale a page to fit the slide, keep its aspect ratio and centre it."""
     if not _is_usable_size(page_width_pt, page_height_pt):
-        raise ValueError("page has no usable size")
+        raise AppError(PAGE_TOO_LARGE)
     slide_width_pt = slide_width / _EMU_PER_POINT
     slide_height_pt = slide_height / _EMU_PER_POINT
     scale = min(slide_width_pt / page_width_pt, slide_height_pt / page_height_pt)
@@ -313,7 +319,7 @@ def _fit_dpi(width_pt: float, height_pt: float, max_pixels: int) -> int:
     even 1 DPI would not fit the budget, where rendering would exhaust memory.
     """
     if not _is_usable_size(width_pt, height_pt):
-        raise ValueError("page has no usable size")
+        raise AppError(PAGE_TOO_LARGE)
     if _fits(width_pt, height_pt, _PICTURE_DPI, max_pixels):
         return _PICTURE_DPI
 
@@ -327,7 +333,7 @@ def _fit_dpi(width_pt: float, height_pt: float, max_pixels: int) -> int:
     while dpi > 1 and not _fits(width_pt, height_pt, dpi, max_pixels):
         dpi -= 1
     if not _fits(width_pt, height_pt, dpi, max_pixels):
-        raise ValueError("page is too large to render")
+        raise AppError(PAGE_TOO_LARGE)
     return dpi
 
 

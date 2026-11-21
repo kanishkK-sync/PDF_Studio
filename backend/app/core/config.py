@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     max_upload_mb: PositiveInt = 100
     job_ttl_minutes: PositiveInt = 30
-    max_concurrent_jobs: PositiveInt = 2
+    max_concurrent_jobs: PositiveInt = 1
     storage_dir: Path = _DEFAULT_STORAGE_DIR
 
     # Phase 2 conversion limits.

@@ -334,8 +334,9 @@ def test_slide_size_follows_the_first_page_within_powerpoints_limits() -> None:
     ids=["zero-width", "zero-height", "nan-width", "negative-width"],
 )
 def test_slide_size_rejects_unusable_sizes(size: tuple[float, float]) -> None:
-    with pytest.raises(ValueError, match="usable size"):
+    with pytest.raises(AppError) as error:
         engine._slide_size(*size)
+    assert error.value.code == "page_too_large"
 
 
 def test_placement_scales_to_fit_and_centres() -> None:
@@ -360,10 +361,10 @@ def test_fit_dpi_is_150_unless_the_budget_is_small() -> None:
 
 
 def test_fit_dpi_rejects_a_page_with_no_size_or_an_impossible_budget() -> None:
-    with pytest.raises(ValueError, match="usable size"):
-        engine._fit_dpi(0, 10, 30_000_000)
-    with pytest.raises(ValueError, match="too large"):
-        engine._fit_dpi(595, 842, 1)
+    for width, height, budget in [(0, 10, 30_000_000), (595, 842, 1)]:
+        with pytest.raises(AppError) as error:
+            engine._fit_dpi(width, height, budget)
+        assert error.value.code == "page_too_large"
 
 
 def test_clean_text_removes_what_xml_cannot_hold_and_flattens_lines() -> None:
@@ -551,9 +552,9 @@ def test_concurrency_limit_is_enforced(
     for thread in threads:
         thread.start()
     try:
-        assert _wait_until(lambda: state["entered"] == 2)
+        assert _wait_until(lambda: state["entered"] == 1)
         time.sleep(0.3)
-        assert state["entered"] == 2  # the third worker is still waiting
+        assert state["entered"] == 1  # all other workers are still waiting
         release.set()
         assert _wait_until(lambda: state["entered"] == 3)
     finally:
@@ -561,7 +562,7 @@ def test_concurrency_limit_is_enforced(
         for thread in threads:
             thread.join(timeout=10)
 
-    assert state["peak"] == 2
+    assert state["peak"] == 1
 
 
 # -- Route ---------------------------------------------------------------------

@@ -20,7 +20,7 @@ from pathlib import Path
 
 from app.core.config import get_settings
 from app.core.errors import PROCESSING_FAILED, TOO_MANY_PAGES, AppError
-from app.services.pdf_common import ConcurrencyGate, open_pdf_document
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ _FAILED_MESSAGE = (
     "Something went wrong while converting your PDF to Word. Please try again."
 )
 
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 
@@ -104,11 +104,13 @@ def _run_pdf2docx(source: Path, destination: Path) -> None:
     were ever broken, only this tool would fail instead of the whole server.
     """
     module = importlib.import_module("pdf2docx")
-    converter = module.Converter(str(source))
+    converter = None
     try:
+        converter = module.Converter(str(source))
         converter.convert(str(destination))
     finally:
-        converter.close()
+        if converter is not None:
+            converter.close()
 
 
 def _check_docx(path: Path) -> None:

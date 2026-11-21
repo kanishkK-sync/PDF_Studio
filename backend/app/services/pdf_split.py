@@ -31,7 +31,7 @@ from app.core.errors import (
     TOO_MANY_PAGES,
     AppError,
 )
-from app.services.pdf_common import ConcurrencyGate, open_pdf_document
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ _FAILED_MESSAGE = (
     "Something went wrong while splitting your PDF. Please try again."
 )
 
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 SplitMode = Literal["extract", "separate"]
@@ -161,6 +161,16 @@ def _split_locked(
                     INVALID_RANGES,
                     f"This PDF has {page_count} pages, so page {end} doesn't exist.",
                 )
+
+        selected_pages = sum(
+            (page_count if end is None else end) - start + 1 for start, end in ranges
+        )
+        if selected_pages > settings.max_pdf_pages:
+            raise AppError(
+                TOO_MANY_PAGES,
+                f"The selected ranges contain {selected_pages} pages, above the "
+                f"{settings.max_pdf_pages} page limit. Choose fewer ranges.",
+            )
 
         work_dir = Path(tempfile.mkdtemp(prefix=_WORK_PREFIX, dir=output_dir))
         try:

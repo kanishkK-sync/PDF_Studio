@@ -26,7 +26,6 @@ import math
 import os
 import shutil
 import tempfile
-import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import get_args
@@ -35,15 +34,14 @@ import pikepdf
 import pymupdf
 from PIL import Image
 
-from app.core.config import get_settings
 from app.core.errors import (
     CORRUPT,
-    ENCRYPTED,
     INVALID_LEVEL,
     PROCESSING_FAILED,
     AppError,
 )
 from app.schemas.jobs import Level
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -135,27 +133,7 @@ class _ImageCandidateError(Exception):
 
 # -- Concurrency ---------------------------------------------------------------
 
-_gate_lock = threading.Lock()
-_gate: threading.BoundedSemaphore | None = None
-
-
-def rebuild_concurrency_gate() -> None:
-    """Recreate the gate from the current settings.
-
-    Needed because tests (and server start) change max_concurrent_jobs after the
-    module was imported. Jobs already running keep releasing the old gate.
-    """
-    global _gate
-    with _gate_lock:
-        _gate = threading.BoundedSemaphore(get_settings().max_concurrent_jobs)
-
-
-def _get_gate() -> threading.BoundedSemaphore:
-    global _gate
-    with _gate_lock:
-        if _gate is None:
-            _gate = threading.BoundedSemaphore(get_settings().max_concurrent_jobs)
-        return _gate
+rebuild_concurrency_gate = GLOBAL_GATE.rebuild
 
 
 # -- Public API ----------------------------------------------------------------
@@ -180,10 +158,9 @@ def compress_pdf(input_path: Path, output_path: Path, level: Level) -> Compressi
     loop. Every failure leaves as an AppError.
     """
     parse_level(level)
-    gate = _get_gate()
-    gate.acquire()
     try:
-        return _compress_locked(input_path, output_path, level)
+        with GLOBAL_GATE.hold():
+            return _compress_locked(input_path, output_path, level)
     except AppError:
         raise
     except Exception as exc:
@@ -191,8 +168,6 @@ def compress_pdf(input_path: Path, output_path: Path, level: Level) -> Compressi
         # only ever needs to know that processing failed.
         logger.exception("Compression failed unexpectedly")
         raise AppError(PROCESSING_FAILED) from exc
-    finally:
-        gate.release()
 
 
 # -- Orchestration -------------------------------------------------------------
@@ -258,36 +233,16 @@ def _fingerprint(document: pymupdf.Document) -> _Fingerprint:
 
 
 def _open_and_fingerprint(path: Path) -> _Fingerprint:
-    """Classify the input (encrypted / corrupt) and fingerprint it.
-
-    Corrupt is raised only after the except blocks have ended. An exception
-    raised from inside one would carry a traceback that keeps PyMuPDF's
-    half-built Document alive, and on Windows that can leave the uploaded file
-    open so the job folder cannot be deleted.
-    """
-    document: pymupdf.Document | None = None
+    """Classify the input with the shared guard and fingerprint it."""
+    document = open_pdf_document(path)
     try:
-        document = pymupdf.open(str(path))
-    except Exception as exc:  # noqa: BLE001 - PyMuPDF raises several unrelated types here
-        logger.info("Input could not be opened: %s", exc)
-    if document is None:
-        raise AppError(CORRUPT)
-
-    fingerprint: _Fingerprint | None = None
-    try:
-        if document.needs_pass or document.is_encrypted:
-            raise AppError(ENCRYPTED)
-        if not document.is_pdf or document.page_count < 1:
-            raise AppError(CORRUPT)
         try:
-            fingerprint = _fingerprint(document)
-        except Exception as exc:  # noqa: BLE001 - any read failure means a damaged file
+            return _fingerprint(document)
+        except Exception as exc:
             logger.info("Input could not be read: %s", exc)
+            raise AppError(CORRUPT) from exc
     finally:
         document.close()
-    if fingerprint is None:
-        raise AppError(CORRUPT)
-    return fingerprint
 
 
 # -- Candidates ----------------------------------------------------------------
@@ -530,26 +485,33 @@ def _encode_image(
         return None  # an unresized JPEG would only lose quality for a tiny gain
     try:
         pixmap = pymupdf.Pixmap(document, info.xref)
-        mode = _pillow_mode(pixmap)
-        if mode is None:
-            return None
-        width, height = pixmap.width, pixmap.height
-        image = Image.frombuffer(
-            mode, (width, height), pixmap.samples, "raw", mode, pixmap.stride, 1
-        )
-        del pixmap
-        if resample:
-            scale = policy.target_dpi / dpi
-            new_size = (max(1, round(width * scale)), max(1, round(height * scale)))
-            image = image.resize(new_size, Image.Resampling.LANCZOS)
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=policy.quality, optimize=True)
-        return _Encoded(
-            data=buffer.getvalue(),
-            width=image.width,
-            height=image.height,
-            gray=mode == "L",
-        )
+        try:
+            mode = _pillow_mode(pixmap)
+            if mode is None:
+                return None
+            width, height = pixmap.width, pixmap.height
+            image = Image.frombuffer(
+                mode, (width, height), pixmap.samples, "raw", mode, pixmap.stride, 1
+            )
+        finally:
+            del pixmap
+        try:
+            if resample:
+                scale = policy.target_dpi / dpi
+                new_size = (max(1, round(width * scale)), max(1, round(height * scale)))
+                resized = image.resize(new_size, Image.Resampling.LANCZOS)
+                image.close()
+                image = resized
+            with io.BytesIO() as buffer:
+                image.save(buffer, format="JPEG", quality=policy.quality, optimize=True)
+                return _Encoded(
+                    data=buffer.getvalue(),
+                    width=image.width,
+                    height=image.height,
+                    gray=mode == "L",
+                )
+        finally:
+            image.close()
     except Exception as exc:  # noqa: BLE001 - one odd image must not sink the whole job
         logger.info("Image %s skipped: %s", info.xref, exc)
         return None
@@ -605,8 +567,10 @@ def _replaced_images_decode(
                 continue
             checked.add(xref)
             pixmap = pymupdf.Pixmap(document, xref)
-            matches = (pixmap.width, pixmap.height) == (width, height)
-            del pixmap
+            try:
+                matches = (pixmap.width, pixmap.height) == (width, height)
+            finally:
+                del pixmap
             if not matches:
                 return False
     return True

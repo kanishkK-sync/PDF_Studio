@@ -1,8 +1,4 @@
-"""Helpers shared by the newer PDF engines.
-
-The older engines (compress, pdf_to_jpg) keep private copies of this logic.
-New engines use this module so the copies stop growing.
-"""
+"""PDF input guards and the process-wide PyMuPDF execution gate."""
 
 import logging
 import threading
@@ -12,51 +8,27 @@ from pathlib import Path
 
 import pymupdf
 
-from app.core.config import get_settings
 from app.core.errors import CORRUPT, ENCRYPTED, AppError
 
 logger = logging.getLogger(__name__)
 
 
 class ConcurrencyGate:
-    """A thread-based limit on how many jobs of one tool run at once.
+    """Serialize PyMuPDF jobs across every endpoint in this Python process."""
 
-    The limit is MAX_CONCURRENT_JOBS per tool, not across tools. The slot is
-    taken inside the worker thread, so waiting jobs never block the event loop.
-    """
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._semaphore: threading.BoundedSemaphore | None = None
+    _execution_lock = threading.Lock()
 
     def rebuild(self) -> None:
-        """Recreate the semaphore from the current settings.
-
-        Needed because server start and tests change max_concurrent_jobs after
-        the module was imported. Jobs already running keep releasing the old one.
-        """
-        with self._lock:
-            self._semaphore = threading.BoundedSemaphore(
-                get_settings().max_concurrent_jobs
-            )
-
-    def _current(self) -> threading.BoundedSemaphore:
-        with self._lock:
-            if self._semaphore is None:
-                self._semaphore = threading.BoundedSemaphore(
-                    get_settings().max_concurrent_jobs
-                )
-            return self._semaphore
+        """Compatibility hook; the live lock must never be replaced."""
 
     @contextmanager
     def hold(self) -> Iterator[None]:
-        """Wait for a free slot, keep it for the with-block, always release it."""
-        semaphore = self._current()
-        semaphore.acquire()
-        try:
+        """Wait in the worker thread and always release after closing files."""
+        with self._execution_lock:
             yield
-        finally:
-            semaphore.release()
+
+
+GLOBAL_GATE = ConcurrencyGate()
 
 
 def open_pdf_document(path: Path) -> pymupdf.Document:

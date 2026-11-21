@@ -35,6 +35,8 @@ NO_CONTENT = "no_content"
 INVALID_RANGES = "invalid_ranges"
 NOT_OFFICE = "not_office"
 NO_MATCH = "no_match"
+NO_TEXT = "no_text"
+PAGE_TOO_LARGE = "page_too_large"
 
 # HTTP status for each code
 ERROR_STATUS: dict[str, int] = {
@@ -56,6 +58,8 @@ ERROR_STATUS: dict[str, int] = {
     INVALID_RANGES: 422,
     NOT_OFFICE: 400,
     NO_MATCH: 422,
+    NO_TEXT: 422,
+    PAGE_TOO_LARGE: 422,
 }
 
 # Default friendly message for each code
@@ -78,6 +82,8 @@ ERROR_MESSAGES: dict[str, str] = {
     INVALID_RANGES: "We couldn't read those page numbers. Use numbers and ranges such as 1-3, 5, 8-.",
     NOT_OFFICE: "We couldn't read that Office file. Please choose a valid DOCX, PPTX or XLSX file.",
     NO_MATCH: "That text wasn't found in the PDF. Try an exact phrase from selectable text.",
+    NO_TEXT: "This PDF has no selectable text. A scan needs text recognition before it can be edited.",
+    PAGE_TOO_LARGE: "A page is too large to render safely. Please resize the page and try again.",
 }
 
 

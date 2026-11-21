@@ -241,9 +241,9 @@ def test_merge_concurrency_limit_is_enforced(
     for thread in threads:
         thread.start()
     try:
-        assert _wait_until(lambda: state["entered"] == 2)
+        assert _wait_until(lambda: state["entered"] == 1)
         time.sleep(0.3)
-        assert state["entered"] == 2
+        assert state["entered"] == 1
         release.set()
         assert _wait_until(lambda: state["entered"] == 3)
     finally:
@@ -251,7 +251,7 @@ def test_merge_concurrency_limit_is_enforced(
         for thread in threads:
             thread.join(timeout=10)
 
-    assert state["peak"] == 2
+    assert state["peak"] == 1
 
 
 def test_merge_result_name_in_download_allowlist() -> None:

@@ -15,13 +15,13 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
 from app.core.config import get_settings
-from app.core.errors import PROCESSING_FAILED, TOO_MANY_PAGES, AppError
-from app.services.pdf_common import ConcurrencyGate
+from app.core.errors import NOT_OFFICE, PROCESSING_FAILED, TOO_MANY_PAGES, AppError
+from app.services.pdf_common import GLOBAL_GATE
 
 logger = logging.getLogger(__name__)
 OfficeKind = Literal["word", "powerpoint", "excel"]
 RESULT_NAME = "result.pdf"
-_gate = ConcurrencyGate()
+_gate = GLOBAL_GATE
 rebuild_concurrency_gate = _gate.rebuild
 
 
@@ -53,6 +53,8 @@ class _Flow:
         chunks = [text[i : i + width] for i in range(0, len(text), width)]
         for chunk in chunks:
             if self.page is None or self.y > 790:
+                if self.pdf.page_count >= get_settings().max_pdf_pages:
+                    raise AppError(TOO_MANY_PAGES)
                 self.page = self.pdf.new_page(width=595, height=842)
                 self.y = 50
             self.page.insert_text((45, self.y), chunk, fontsize=size)
@@ -60,7 +62,13 @@ class _Flow:
 
 
 def _word(path: Path, pdf: pymupdf.Document) -> None:
-    document = Document(path)
+    document = None
+    try:
+        document = Document(path)
+    except Exception as exc:  # noqa: BLE001 - python-docx has varied package errors
+        logger.info("Word package could not be opened: %s", type(exc).__name__)
+    if document is None:
+        raise AppError(NOT_OFFICE)
     flow = _Flow(pdf)
     for block in document.iter_inner_content():
         if hasattr(block, "rows"):
@@ -73,10 +81,18 @@ def _word(path: Path, pdf: pymupdf.Document) -> None:
 
 
 def _powerpoint(path: Path, pdf: pymupdf.Document) -> None:
-    presentation = Presentation(path)
+    presentation = None
+    try:
+        presentation = Presentation(path)
+    except Exception as exc:  # noqa: BLE001 - python-pptx has varied package errors
+        logger.info("PowerPoint package could not be opened: %s", type(exc).__name__)
+    if presentation is None:
+        raise AppError(NOT_OFFICE)
     scale = min(842 / presentation.slide_height, 595 / presentation.slide_width)
     width = presentation.slide_width * scale
     height = presentation.slide_height * scale
+    if len(presentation.slides) > get_settings().max_pdf_pages:
+        raise AppError(TOO_MANY_PAGES)
     for slide in presentation.slides:
         page = pdf.new_page(width=width, height=height)
         for shape in slide.shapes:
@@ -97,7 +113,13 @@ def _powerpoint(path: Path, pdf: pymupdf.Document) -> None:
 
 
 def _excel(path: Path, pdf: pymupdf.Document) -> None:
-    workbook = load_workbook(path, read_only=True, data_only=True)
+    workbook = None
+    try:
+        workbook = load_workbook(path, read_only=True, data_only=True)
+    except Exception as exc:  # noqa: BLE001 - openpyxl has varied package errors
+        logger.info("Excel package could not be opened: %s", type(exc).__name__)
+    if workbook is None:
+        raise AppError(NOT_OFFICE)
     try:
         flow = _Flow(pdf)
         for sheet in workbook:
@@ -140,7 +162,7 @@ def convert_office_to_pdf(
     except AppError:
         raise
     except (ValueError, KeyError, zipfile.BadZipFile) as exc:
-        raise AppError("not_office") from exc
+        raise AppError(NOT_OFFICE) from exc
     except Exception as exc:
         logger.exception("Office to PDF conversion failed")
         raise AppError(PROCESSING_FAILED, "We couldn't convert this Office file. Please try another copy.") from exc

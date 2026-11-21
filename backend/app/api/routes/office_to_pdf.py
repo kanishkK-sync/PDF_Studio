@@ -7,7 +7,7 @@ from fastapi import APIRouter, File, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
-from app.core.errors import AppError
+from app.core.errors import NOT_OFFICE, TOO_LARGE, AppError
 from app.schemas.jobs import OfficeToPdfResponse
 from app.services.office_to_pdf import OfficeKind, convert_office_to_pdf
 from app.utils.cleanup import remove_folder
@@ -27,6 +27,8 @@ _REQUIRED_PART = {
     "powerpoint": "ppt/presentation.xml",
     "excel": "xl/workbook.xml",
 }
+_MAX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024
+_MAX_PACKAGE_PARTS = 10_000
 
 
 async def _convert(file: UploadFile, kind: OfficeKind) -> OfficeToPdfResponse:
@@ -40,13 +42,18 @@ async def _convert(file: UploadFile, kind: OfficeKind) -> OfficeToPdfResponse:
             file, path, get_settings().max_upload_mb * 1024 * 1024
         )
         if not zipfile.is_zipfile(path):
-            raise AppError("not_office")
+            raise AppError(NOT_OFFICE)
         try:
             with zipfile.ZipFile(path) as archive:
-                if _REQUIRED_PART[kind] not in archive.namelist():
-                    raise AppError("not_office")
+                parts = archive.infolist()
+                if _REQUIRED_PART[kind] not in {part.filename for part in parts}:
+                    raise AppError(NOT_OFFICE)
+                if len(parts) > _MAX_PACKAGE_PARTS or sum(
+                    part.file_size for part in parts
+                ) > _MAX_UNCOMPRESSED_BYTES:
+                    raise AppError(TOO_LARGE, "This Office file expands beyond the safe size limit.")
         except zipfile.BadZipFile as exc:
-            raise AppError("not_office") from exc
+            raise AppError(NOT_OFFICE) from exc
         result = await run_in_threadpool(convert_office_to_pdf, path, output_dir, kind)
         name = safe_display_name(file.filename)
         download_name = f"{name}.pdf"

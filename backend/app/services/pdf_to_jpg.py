@@ -19,7 +19,6 @@ import math
 import os
 import shutil
 import tempfile
-import threading
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,14 +29,14 @@ from PIL import Image
 
 from app.core.config import get_settings
 from app.core.errors import (
-    CORRUPT,
-    ENCRYPTED,
     INVALID_QUALITY,
+    PAGE_TOO_LARGE,
     PROCESSING_FAILED,
     TOO_MANY_PAGES,
     AppError,
 )
 from app.schemas.jobs import Quality
+from app.services.pdf_common import GLOBAL_GATE, open_pdf_document
 
 logger = logging.getLogger(__name__)
 
@@ -79,29 +78,7 @@ _PRESETS: dict[str, _Preset] = {
 
 # -- Concurrency ---------------------------------------------------------------
 
-# Each engine owns its gate, so the limit is MAX_CONCURRENT_JOBS per tool, not
-# a single limit across tools (compress.py keeps its own and is not touched).
-_gate_lock = threading.Lock()
-_gate: threading.BoundedSemaphore | None = None
-
-
-def rebuild_concurrency_gate() -> None:
-    """Recreate the gate from the current settings.
-
-    Needed because server start and tests change max_concurrent_jobs after the
-    module was imported. Jobs already running keep releasing the old gate.
-    """
-    global _gate
-    with _gate_lock:
-        _gate = threading.BoundedSemaphore(get_settings().max_concurrent_jobs)
-
-
-def _get_gate() -> threading.BoundedSemaphore:
-    global _gate
-    with _gate_lock:
-        if _gate is None:
-            _gate = threading.BoundedSemaphore(get_settings().max_concurrent_jobs)
-        return _gate
+rebuild_concurrency_gate = GLOBAL_GATE.rebuild
 
 
 # -- Public API ----------------------------------------------------------------
@@ -128,10 +105,9 @@ def convert_pdf_to_jpg(
     loop. Every failure leaves as an AppError.
     """
     parse_quality(quality)
-    gate = _get_gate()
-    gate.acquire()
     try:
-        return _convert_locked(input_path, output_dir, quality)
+        with GLOBAL_GATE.hold():
+            return _convert_locked(input_path, output_dir, quality)
     except AppError:
         raise
     except Exception as exc:
@@ -139,42 +115,14 @@ def convert_pdf_to_jpg(
         # to know that processing failed.
         logger.exception("PDF to JPG failed unexpectedly")
         raise AppError(PROCESSING_FAILED, _FAILED_MESSAGE) from exc
-    finally:
-        gate.release()
 
 
 # -- Orchestration -------------------------------------------------------------
 
 
 def _open_document(path: Path) -> pymupdf.Document:
-    """Open the input and classify it. The caller must close the result.
-
-    AppError is raised only after the except blocks have ended. An exception
-    raised from inside one would carry a traceback that keeps PyMuPDF's
-    half-built Document alive, and on Windows that can leave the uploaded file
-    open so the job folder cannot be deleted.
-    """
-    document: pymupdf.Document | None = None
-    try:
-        document = pymupdf.open(str(path))
-    except Exception as exc:  # noqa: BLE001 - PyMuPDF raises several unrelated types here
-        logger.info("Input could not be opened: %s", exc)
-    if document is None:
-        raise AppError(CORRUPT)
-
-    problem: str | None = None
-    try:
-        if document.needs_pass or document.is_encrypted:
-            problem = ENCRYPTED
-        elif not document.is_pdf or document.page_count < 1:
-            problem = CORRUPT
-    except Exception as exc:  # noqa: BLE001 - any failure to read the basics means a damaged file
-        logger.info("Input could not be read: %s", exc)
-        problem = CORRUPT
-    if problem is not None:
-        document.close()
-        raise AppError(problem)
-    return document
+    """Use the shared guard; the caller closes the validated document."""
+    return open_pdf_document(path)
 
 
 def _convert_locked(
@@ -274,7 +222,7 @@ def _fit_dpi(rect: pymupdf.Rect, wanted: int, max_pixels: int) -> int:
         or width_pt <= 0
         or height_pt <= 0
     ):
-        raise ValueError("page has no usable size")
+        raise AppError(PAGE_TOO_LARGE)
     if _fits(width_pt, height_pt, wanted, max_pixels):
         return wanted
 
@@ -288,7 +236,7 @@ def _fit_dpi(rect: pymupdf.Rect, wanted: int, max_pixels: int) -> int:
     while dpi > 1 and not _fits(width_pt, height_pt, dpi, max_pixels):
         dpi -= 1
     if not _fits(width_pt, height_pt, dpi, max_pixels):
-        raise ValueError("page is too large to render")
+        raise AppError(PAGE_TOO_LARGE)
     return dpi
 
 
@@ -306,9 +254,9 @@ def _pillow_jpeg(pixmap: pymupdf.Pixmap, quality: int) -> bytes:
         mode, (pixmap.width, pixmap.height), pixmap.samples, "raw", mode, pixmap.stride, 1
     )
     try:
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=quality, optimize=True)
-        return buffer.getvalue()
+        with io.BytesIO() as buffer:
+            image.save(buffer, format="JPEG", quality=quality, optimize=True)
+            return buffer.getvalue()
     finally:
         image.close()
 
@@ -339,7 +287,10 @@ def _render_jpeg(
         page = document.load_page(index)
         dpi = _fit_dpi(page.rect, preset.dpi, max_pixels)
         pixmap = page.get_pixmap(dpi=dpi, alpha=False)
-        return _encode_jpeg(pixmap, preset.jpeg_quality)
+        try:
+            return _encode_jpeg(pixmap, preset.jpeg_quality)
+        finally:
+            del pixmap
     except AppError:
         raise
     except Exception as exc:

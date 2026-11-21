@@ -26,7 +26,6 @@ import logging
 import os
 import shutil
 import tempfile
-import threading
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,7 +34,6 @@ from typing import get_args
 import pymupdf
 from PIL import Image, ImageOps
 
-from app.core.config import get_settings
 from app.core.errors import (
     INVALID_PAGE_SIZE,
     INVALID_REQUEST,
@@ -45,6 +43,7 @@ from app.core.errors import (
     AppError,
 )
 from app.schemas.jobs import PageSize
+from app.services.pdf_common import GLOBAL_GATE
 
 logger = logging.getLogger(__name__)
 
@@ -98,29 +97,7 @@ class _Info:
 
 # -- Concurrency ---------------------------------------------------------------
 
-# Each engine owns its gate, so the limit is MAX_CONCURRENT_JOBS per tool, not
-# a single limit across tools (the other engines keep their own gates).
-_gate_lock = threading.Lock()
-_gate: threading.BoundedSemaphore | None = None
-
-
-def rebuild_concurrency_gate() -> None:
-    """Recreate the gate from the current settings.
-
-    Needed because server start and tests change max_concurrent_jobs after the
-    module was imported. Jobs already running keep releasing the old gate.
-    """
-    global _gate
-    with _gate_lock:
-        _gate = threading.BoundedSemaphore(get_settings().max_concurrent_jobs)
-
-
-def _get_gate() -> threading.BoundedSemaphore:
-    global _gate
-    with _gate_lock:
-        if _gate is None:
-            _gate = threading.BoundedSemaphore(get_settings().max_concurrent_jobs)
-        return _gate
+rebuild_concurrency_gate = GLOBAL_GATE.rebuild
 
 
 # -- Public API ----------------------------------------------------------------
@@ -155,10 +132,9 @@ def convert_images_to_pdf(
     loop. Every failure leaves as an AppError.
     """
     parse_page_size(page_size)
-    gate = _get_gate()
-    gate.acquire()
     try:
-        return _convert_locked(image_paths, output_dir, page_size)
+        with GLOBAL_GATE.hold():
+            return _convert_locked(image_paths, output_dir, page_size)
     except AppError:
         raise
     except Exception as exc:
@@ -166,8 +142,6 @@ def convert_images_to_pdf(
         # to know that processing failed.
         logger.exception("JPG to PDF failed unexpectedly")
         raise AppError(PROCESSING_FAILED, _FAILED_MESSAGE) from exc
-    finally:
-        gate.release()
 
 
 # -- Orchestration -------------------------------------------------------------
