@@ -8,6 +8,9 @@ from pathlib import Path
 
 import pymupdf
 import pytest
+from fastapi.testclient import TestClient
+from httpx import Response
+
 from app.api.routes import jobs as jobs_route
 from app.api.routes import merge as merge_route
 from app.core.config import get_settings
@@ -24,8 +27,6 @@ from app.core.errors import (
 )
 from app.services import pdf_merge as engine
 from app.services.pdf_merge import PdfMergeResult, merge_pdfs
-from fastapi.testclient import TestClient
-from httpx import Response
 
 PostMerge = Callable[..., Response]
 

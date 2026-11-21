@@ -593,3 +593,60 @@ export function convertPdfToPptx(
     callbacks,
   );
 }
+
+// Remaining PDF and Office tools share the same job/download lifecycle.
+export type DocumentResult = {
+  job_id: string;
+  download_url: string;
+  download_name: string;
+  page_count: number;
+  result_size: number;
+  original_size?: number;
+  original_name?: string;
+  replacement_count?: number;
+  selected_pages?: number;
+  file_count?: number;
+  total_input_size?: number;
+  kind?: "pdf" | "zip";
+  mode?: "extract" | "separate";
+};
+
+function parseDocumentResult(data: unknown): DocumentResult | null {
+  if (!isRecord(data)) return null;
+  if (
+    typeof data.job_id !== "string" ||
+    typeof data.download_url !== "string" ||
+    typeof data.download_name !== "string" ||
+    typeof data.page_count !== "number" ||
+    typeof data.result_size !== "number"
+  ) return null;
+  return data as DocumentResult;
+}
+
+export function officeToPdf(file: File, kind: "word" | "powerpoint" | "excel", callbacks: UploadCallbacks = {}): UploadHandle<DocumentResult> {
+  const form = new FormData();
+  form.append("file", file);
+  return postMultipart(`/api/${kind}-to-pdf`, form, parseDocumentResult, callbacks);
+}
+
+export function editPdf(file: File, find: string, replace: string, callbacks: UploadCallbacks = {}): UploadHandle<DocumentResult> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("find", find);
+  form.append("replace", replace);
+  return postMultipart("/api/edit-pdf", form, parseDocumentResult, callbacks);
+}
+
+export function splitPdf(file: File, ranges: string, mode: "extract" | "separate", callbacks: UploadCallbacks = {}): UploadHandle<DocumentResult> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("ranges", ranges);
+  form.append("mode", mode);
+  return postMultipart("/api/split", form, parseDocumentResult, callbacks);
+}
+
+export function mergePdf(files: File[], callbacks: UploadCallbacks = {}): UploadHandle<DocumentResult> {
+  const form = new FormData();
+  files.forEach(file => form.append("files", file));
+  return postMultipart("/api/merge", form, parseDocumentResult, callbacks);
+}

@@ -4,7 +4,7 @@ A free, local-first PDF toolkit. Everything runs on your own machine: files are 
 
 ## Current status
 
-Phases 1 and 2 are done: three tools work end to end. The other seven are still placeholders.
+All 12 tools in the registry work end to end. Files are processed locally and results are deleted after download or expiry.
 
 - **Compress PDF** (`/tools/compress-pdf`): choose a PDF, pick a level, upload, and download the smaller file. Text stays selectable and searchable, and links, bookmarks, form fields, annotations, page sizes and metadata are kept. The result is never larger than the original; if nothing can be saved, you get the original back marked "Already optimized".
   - **Light:** lossless. Cleans up the file structure and leaves images untouched.
@@ -19,9 +19,14 @@ Phases 1 and 2 are done: three tools work end to end. The other seven are still 
   - **Fit to image:** each page is as big as its picture.
   - **A4:** each picture is centred on an A4 page with a 10 mm margin, upright or sideways to match.
   - Plain RGB or grayscale pictures are embedded as they are. CMYK, palette, transparent and rotated pictures are converted first, and transparency is flattened onto white.
-- **Other tools:** each has a placeholder page at `/tools/<slug>` that says "Coming soon". An unknown slug shows a "Tool not found" page.
-- **Homepage:** hero, a backend-status pill that checks `/api/health` every 10 seconds, a category filter, a grid of 10 tools, and a light/dark theme toggle (dark by default).
-- **Not built yet:** inline text editing and the conversions between PDF and Word, PowerPoint and Excel.
+- **PDF to Word** (`/tools/pdf-to-word`): exports selectable text and images to a DOCX. Complex PDF layouts may need cleanup.
+- **PDF to Excel** (`/tools/pdf-to-excel`): exports each detected table to its own sheet, or uses a text sheet when there are no tables. Scans need OCR, which is not included.
+- **PDF to PowerPoint** (`/tools/pdf-to-powerpoint`): pictures mode preserves the appearance of each page; editable mode rebuilds text and images as slide objects with possible layout changes.
+- **Edit PDF Text** (`/tools/edit-pdf`): finds an exact phrase in selectable text, removes matching occurrences and places replacement text in their page areas. Review long replacements for clipping.
+- **Merge PDF** (`/tools/merge-pdf`): combines 2 to 20 PDFs in the selected order; move files with the arrow buttons.
+- **Split PDF** (`/tools/split-pdf`): enter page ranges such as `1-3, 5, 8-` to extract one PDF or produce a ZIP with a separate PDF per range.
+- **Word to PDF, PowerPoint to PDF, Excel to PDF** (`/tools/word-to-pdf`, `/tools/powerpoint-to-pdf`, `/tools/excel-to-pdf`): render text and basic tables or pictures with bundled Python libraries. Text remains searchable where possible. Advanced formatting, charts, formulas and animations may change or be omitted.
+- **Homepage:** hero, a backend-status pill that checks `/api/health` every 10 seconds, a category filter, a grid of 12 tools, and a light/dark theme toggle (dark by default).
 
 ## Requirements
 
@@ -120,6 +125,7 @@ Backend (`backend/.env`, or real environment variables). Restart `uvicorn` after
 | `MAX_CONCURRENT_JOBS` | `2` | How many jobs of each tool run at the same time. Extra jobs wait. |
 | `MAX_PDF_PAGES` | `300` | Most pages converted in one PDF to JPG job. |
 | `MAX_IMAGES` | `50` | Most images accepted in one JPG to PDF job. |
+| `MAX_MERGE_FILES` | `20` | Most PDFs accepted in one merge job. |
 | `MAX_RENDER_PIXELS` | `30000000` | Most pixels rendered for one PDF page. A larger page is rendered at a lower DPI. |
 | `STORAGE_DIR` | `backend/app/storage` | Where uploads and results are kept while a job lives. |
 | `FRONTEND_ORIGIN` | `http://localhost:3000` | The single origin allowed by CORS. |
@@ -141,10 +147,19 @@ Frontend (`frontend/.env.local`). Restart `npm run dev` after changing any of th
 | `POST /api/compress` | Multipart form with `file` and `level` (`light`, `balanced` or `strong`). Returns JSON with `job_id`, `original_name`, `original_size`, `compressed_size`, `saved_bytes`, `saved_percent`, `already_optimized`, `level` and `download_url`. |
 | `POST /api/pdf-to-jpg` | Multipart form with `file` and `quality` (`low`, `medium` or `high`). Returns JSON with `job_id`, `original_name`, `page_count`, `file_count`, `result_size`, `kind` (`jpg` or `zip`), `quality` and `download_url`. |
 | `POST /api/jpg-to-pdf` | Multipart form with a repeated `files` field (the order sent is the page order) and `page_size` (`fit` or `a4`). Returns JSON with `job_id`, `page_count`, `total_input_size`, `result_size`, `page_size`, `download_name` and `download_url`. |
+| `POST /api/pdf-to-word` | Multipart `file`; returns a DOCX job with page count and download URL. |
+| `POST /api/pdf-to-excel` | Multipart `file`; returns an XLSX job with table and sheet counts, mode and download URL. |
+| `POST /api/pdf-to-pptx` | Multipart `file` and `mode` (`pictures` or `editable`); returns a PPTX job with slide count and download URL. |
+| `POST /api/edit-pdf` | Multipart PDF `file`, `find`, and `replace`; returns an edited PDF job with replacement count. |
+| `POST /api/merge` | Multipart repeated PDF `files`, in desired order; returns a merged PDF job. |
+| `POST /api/split` | Multipart PDF `file`, `ranges` (for example `1-3, 5, 8-`), and `mode` (`extract` or `separate`); returns a PDF or ZIP job. |
+| `POST /api/word-to-pdf` | Multipart DOCX `file`; returns a PDF job. |
+| `POST /api/powerpoint-to-pdf` | Multipart PPTX `file`; returns a PDF job. |
+| `POST /api/excel-to-pdf` | Multipart XLSX `file`; returns a PDF job. |
 | `GET /api/jobs/{job_id}/download` | Sends the result, then deletes the job. The file is a PDF, a JPG or a ZIP depending on the job, named `<name>-compressed.pdf`, `<name>.jpg`, `<name>-jpg.zip`, `<first image name>.pdf` or `images.pdf`. A second request, an unknown id or an expired id gives 404 `job_not_found`. |
 | `DELETE /api/jobs/{job_id}` | Deletes a job. Always answers 204, even for unknown ids, and is safe to repeat. |
 
-Errors from these routes look like `{"error": {"code": "...", "message": "..."}}`. Codes: `not_pdf`, `not_image`, `encrypted`, `corrupt`, `too_large`, `too_many_files`, `too_many_pages`, `invalid_level`, `invalid_quality`, `invalid_page_size`, `invalid_request`, `job_not_found`, `processing_failed`, `internal_error`.
+Errors from these routes look like `{"error": {"code": "...", "message": "..."}}`. Codes include `not_pdf`, `not_image`, `not_office`, `encrypted`, `corrupt`, `too_large`, `too_many_files`, `too_many_pages`, `invalid_level`, `invalid_quality`, `invalid_page_size`, `invalid_ranges`, `invalid_request`, `no_content`, `no_match`, `job_not_found`, `processing_failed`, and `internal_error`.
 
 ## How long files live
 
@@ -161,9 +176,9 @@ pdf-studio/
 │   ├── app/
 │   │   ├── main.py            FastAPI app, CORS, routers, startup cleanup, sweeper
 │   │   ├── core/              settings (read from .env), error system
-│   │   ├── api/routes/        health, compress, pdf_to_jpg, jpg_to_pdf, jobs
+│   │   ├── api/routes/        health, jobs and all conversion/editing routes
 │   │   ├── schemas/           response models
-│   │   ├── services/          compress, pdf_to_jpg and jpg_to_pdf engines
+│   │   ├── services/          conversion, editing, merge and split engines
 │   │   ├── utils/             job storage, upload helpers, folder cleanup
 │   │   └── storage/           uploads/ and outputs/ (contents are git-ignored)
 │   ├── tests/                 backend tests

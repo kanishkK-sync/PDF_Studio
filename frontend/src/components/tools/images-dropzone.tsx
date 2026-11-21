@@ -16,6 +16,7 @@ type ImagesDropzoneProps = {
   maxBytes: number;
   label: string;
   hint: string;
+  fileDescription?: string;
   // A small "add more" row instead of the large first-pick card.
   compact?: boolean;
   disabled?: boolean;
@@ -27,6 +28,7 @@ type ImagesDropzoneProps = {
 function rejectionMessage(
   rejections: FileRejection[],
   maxBytes: number,
+  fileDescription: string,
 ): string {
   const codes = new Set(
     rejections.flatMap((rejection) =>
@@ -36,7 +38,7 @@ function rejectionMessage(
 
   const parts: string[] = [];
   if (codes.has("file-invalid-type")) {
-    parts.push("Only JPG and PNG pictures can be used, so other files were skipped.");
+    parts.push(`Only ${fileDescription} can be used, so other files were skipped.`);
   }
   if (codes.has("file-too-large")) {
     parts.push(
@@ -53,6 +55,7 @@ export function ImagesDropzone({
   maxBytes,
   label,
   hint,
+  fileDescription = "JPG and PNG pictures",
   compact = false,
   disabled = false,
   onSelect,
@@ -72,7 +75,7 @@ export function ImagesDropzone({
         onSelect(files);
       },
       onDropRejected: (rejections) => {
-        onReject(rejectionMessage(rejections, maxBytes));
+        onReject(rejectionMessage(rejections, maxBytes, fileDescription));
       },
     });
 
@@ -88,8 +91,8 @@ export function ImagesDropzone({
 
   const title = isDragActive
     ? isDragReject
-      ? "Only JPG and PNG pictures will work"
-      : "Drop to add these images"
+      ? `Only ${fileDescription} will work`
+      : `Drop to add these ${fileDescription}`
     : label;
 
   const zone = (

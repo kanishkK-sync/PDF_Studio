@@ -56,6 +56,10 @@ export type PdfConvertSummary = {
 };
 
 type PdfConvertWorkspaceProps<R extends PdfConvertResult> = {
+  accept?: Record<string, string[]>;
+  fileLabel?: string;
+  fileDescription?: string;
+  canRun?: boolean;
   // Primary button text, for example "Convert to Word".
   actionLabel: string;
   actionIcon: ReactNode;
@@ -108,7 +112,7 @@ function buildAnnouncement({
         : `Selected ${file.name}, ${formatBytes(file.size)}. Press ${actionLabel}.`;
     case "uploading": {
       const step = Math.floor(progress / 25) * 25;
-      return step === 0 ? "Uploading your PDF." : `Uploading, ${step} percent.`;
+      return step === 0 ? "Uploading your file." : `Uploading, ${step} percent.`;
     }
     case "processing":
       return busyAnnouncement;
@@ -123,6 +127,10 @@ function buildAnnouncement({
 }
 
 export function PdfConvertWorkspace<R extends PdfConvertResult>({
+  accept = ACCEPT,
+  fileLabel,
+  fileDescription,
+  canRun = true,
   actionLabel,
   actionIcon,
   busyLabel,
@@ -249,7 +257,9 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
           {rejection && <ErrorBanner message={rejection} />}
           <FileDropzone
             ref={dropzoneRef}
-            accept={ACCEPT}
+            accept={accept}
+            label={fileLabel}
+            fileDescription={fileDescription}
             maxSizeBytes={MAX_UPLOAD_BYTES}
             onSelect={handleSelect}
             onReject={setRejection}
@@ -297,16 +307,16 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
             <motion.button
               ref={actionButtonRef}
               type="button"
-              aria-disabled={busy}
+              aria-disabled={busy || !canRun}
               onClick={() => {
-                if (!busy) handleConvert();
+                if (!busy && canRun) handleConvert();
               }}
-              whileHover={busy ? undefined : interactions.hover}
-              whileTap={busy ? undefined : interactions.tap}
+              whileHover={busy || !canRun ? undefined : interactions.hover}
+              whileTap={busy || !canRun ? undefined : interactions.tap}
               transition={microTransition}
               className={cn(
                 primaryButtonClass,
-                busy && "cursor-not-allowed opacity-60",
+                (busy || !canRun) && "cursor-not-allowed opacity-60",
               )}
             >
               {actionIcon}

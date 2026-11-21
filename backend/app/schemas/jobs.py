@@ -120,3 +120,21 @@ class SplitResponse(BaseModel):
     result_size: int
     download_name: str
     download_url: str
+
+
+class OfficeToPdfResponse(BaseModel):
+    """Payload returned by an Office to PDF route."""
+
+    job_id: str
+    original_name: str
+    original_size: int
+    result_size: int
+    page_count: int
+    download_name: str
+    download_url: str
+
+
+class EditPdfResponse(OfficeToPdfResponse):
+    """Payload returned after replacing text in a PDF."""
+
+    replacement_count: int

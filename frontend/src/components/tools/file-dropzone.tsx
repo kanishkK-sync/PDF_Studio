@@ -16,17 +16,20 @@ export type FileDropzoneHandle = {
 type FileDropzoneProps = {
   accept: Record<string, string[]>;
   maxSizeBytes: number;
+  label?: string;
+  fileDescription?: string;
   disabled?: boolean;
   onSelect: (file: File) => void;
   onReject: (message: string) => void;
   ref?: Ref<FileDropzoneHandle>;
 };
 
-const LABEL = "Drop a PDF here, or choose a file";
+const DEFAULT_LABEL = "Drop a PDF here, or choose a file";
 
 function rejectionMessage(
   rejections: FileRejection[],
   maxSizeBytes: number,
+  fileDescription: string,
 ): string {
   const codes = new Set(
     rejections.flatMap((rejection) =>
@@ -38,17 +41,19 @@ function rejectionMessage(
     return "Please choose one file at a time.";
   }
   if (codes.has("file-invalid-type")) {
-    return "That file isn't a PDF. Please choose a file ending in .pdf.";
+    return `That file isn't a ${fileDescription}. Please choose the right file type.`;
   }
   if (codes.has("file-too-large")) {
-    return `That file is larger than ${formatBytes(maxSizeBytes)}. Please choose a smaller PDF.`;
+    return `That file is larger than ${formatBytes(maxSizeBytes)}. Please choose a smaller file.`;
   }
-  return "That file can't be used. Please choose a different PDF.";
+  return "That file can't be used. Please choose a different file.";
 }
 
 export function FileDropzone({
   accept,
   maxSizeBytes,
+  label = DEFAULT_LABEL,
+  fileDescription = "PDF",
   disabled = false,
   onSelect,
   onReject,
@@ -68,7 +73,7 @@ export function FileDropzone({
         if (file) onSelect(file);
       },
       onDropRejected: (rejections) => {
-        onReject(rejectionMessage(rejections, maxSizeBytes));
+        onReject(rejectionMessage(rejections, maxSizeBytes, fileDescription));
       },
     });
 
@@ -84,9 +89,9 @@ export function FileDropzone({
 
   const title = isDragActive
     ? isDragReject
-      ? "Only a single PDF will work"
-      : "Drop to select this PDF"
-    : LABEL;
+      ? `Only one ${fileDescription} will work`
+      : `Drop to select this ${fileDescription}`
+    : label;
 
   return (
     <motion.div
@@ -98,7 +103,7 @@ export function FileDropzone({
       <div
         {...getRootProps({
           role: "button",
-          "aria-label": LABEL,
+          "aria-label": label,
           "aria-describedby": hintId,
           "aria-disabled": disabled,
         })}
@@ -124,7 +129,7 @@ export function FileDropzone({
             {title}
           </p>
           <p id={hintId} className="text-sm text-muted">
-            One PDF, up to {formatBytes(maxSizeBytes)}
+            One {fileDescription}, up to {formatBytes(maxSizeBytes)}
           </p>
         </div>
       </div>

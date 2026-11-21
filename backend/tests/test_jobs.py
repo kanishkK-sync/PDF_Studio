@@ -8,6 +8,9 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+from httpx import Response
+
 from app import main as main_module
 from app.api.routes import compress as compress_route
 from app.api.routes import jobs as jobs_route
@@ -23,8 +26,6 @@ from app.core.errors import (
 from app.main import app
 from app.services import pdf_to_jpg as pdf_to_jpg_engine
 from app.utils import storage
-from fastapi.testclient import TestClient
-from httpx import Response
 
 PostCompress = Callable[..., Response]
 

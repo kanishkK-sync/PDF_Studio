@@ -15,6 +15,8 @@ from app.api.routes import (
     jobs,
     jpg_to_pdf,
     merge,
+    office_to_pdf,
+    pdf_edit,
     pdf_to_excel,
     pdf_to_jpg,
     pdf_to_pptx,
@@ -25,6 +27,10 @@ from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.services.compress import rebuild_concurrency_gate
 from app.services.jpg_to_pdf import rebuild_concurrency_gate as rebuild_jpg_to_pdf_gate
+from app.services.office_to_pdf import (
+    rebuild_concurrency_gate as rebuild_office_to_pdf_gate,
+)
+from app.services.pdf_edit import rebuild_concurrency_gate as rebuild_pdf_edit_gate
 from app.services.pdf_merge import (
     rebuild_concurrency_gate as rebuild_pdf_merge_gate,
 )
@@ -84,6 +90,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     rebuild_pdf_to_pptx_gate()
     rebuild_pdf_merge_gate()
     rebuild_pdf_split_gate()
+    rebuild_office_to_pdf_gate()
+    rebuild_pdf_edit_gate()
     sweeper = asyncio.create_task(_sweep_forever())
     try:
         yield
@@ -120,3 +128,5 @@ app.include_router(pdf_to_excel.router, prefix="/api")
 app.include_router(pdf_to_pptx.router, prefix="/api")
 app.include_router(merge.router, prefix="/api")
 app.include_router(split.router, prefix="/api")
+app.include_router(office_to_pdf.router, prefix="/api")
+app.include_router(pdf_edit.router, prefix="/api")

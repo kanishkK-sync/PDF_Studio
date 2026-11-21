@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pymupdf
 import pytest
+from fastapi.testclient import TestClient
+from httpx import Response
+
 from app.api.routes import jobs as jobs_route
 from app.api.routes import split as split_route
 from app.core.config import get_settings
@@ -25,8 +28,6 @@ from app.core.errors import (
 )
 from app.services import pdf_split as engine
 from app.services.pdf_split import PdfSplitResult, parse_ranges, split_pdf
-from fastapi.testclient import TestClient
-from httpx import Response
 
 PostSplit = Callable[..., Response]
 

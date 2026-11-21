@@ -6,14 +6,15 @@ from pathlib import Path
 
 import pymupdf
 import pytest
+from fastapi.testclient import TestClient
+from httpx import Response
+from PIL import Image, ImageOps
+
 from app.core.config import get_settings
 from app.main import app
 from app.services.compress import rebuild_concurrency_gate
 from app.services.jpg_to_pdf import rebuild_concurrency_gate as rebuild_jpg_to_pdf_gate
 from app.services.pdf_to_jpg import rebuild_concurrency_gate as rebuild_pdf_to_jpg_gate
-from fastapi.testclient import TestClient
-from httpx import Response
-from PIL import Image, ImageOps
 
 
 @pytest.fixture

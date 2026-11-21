@@ -11,6 +11,15 @@ from typing import Any
 
 import pymupdf
 import pytest
+from fastapi.testclient import TestClient
+from httpx import Response
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE_TYPE
+from pptx.presentation import Presentation as PresentationObject
+from pptx.shapes.base import BaseShape
+from pptx.slide import Slide
+
 from app.api.routes import pdf_to_pptx as pdf_to_pptx_route
 from app.core.config import get_settings
 from app.core.errors import (
@@ -26,14 +35,6 @@ from app.core.errors import (
 )
 from app.services import pdf_to_pptx as engine
 from app.services.pdf_to_pptx import PdfToPptxResult, convert_pdf_to_pptx
-from fastapi.testclient import TestClient
-from httpx import Response
-from pptx import Presentation
-from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.presentation import Presentation as PresentationObject
-from pptx.shapes.base import BaseShape
-from pptx.slide import Slide
 
 PdfFactory = Callable[..., Path]
 PostPdfToPptx = Callable[..., Response]

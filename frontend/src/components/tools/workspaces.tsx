@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import { CompressWorkspace } from "@/components/tools/compress-workspace";
 import { JpgToPdfWorkspace } from "@/components/tools/jpg-to-pdf-workspace";
+import { MergePdfWorkspace } from "@/components/tools/merge-pdf-workspace";
+import { EditPdfWorkspace, ExcelToPdfWorkspace, PowerpointToPdfWorkspace, SplitPdfWorkspace, WordToPdfWorkspace } from "@/components/tools/remaining-single-workspaces";
 import { PdfToExcelWorkspace } from "@/components/tools/pdf-to-excel-workspace";
 import { PdfToJpgWorkspace } from "@/components/tools/pdf-to-jpg-workspace";
 import { PdfToPptxWorkspace } from "@/components/tools/pdf-to-pptx-workspace";
@@ -17,6 +19,12 @@ const workspaces: Readonly<Record<string, () => ReactElement>> = {
   "pdf-to-word": () => <PdfToWordWorkspace />,
   "pdf-to-excel": () => <PdfToExcelWorkspace />,
   "pdf-to-powerpoint": () => <PdfToPptxWorkspace />,
+  "edit-pdf": () => <EditPdfWorkspace />,
+  "merge-pdf": () => <MergePdfWorkspace />,
+  "split-pdf": () => <SplitPdfWorkspace />,
+  "word-to-pdf": () => <WordToPdfWorkspace />,
+  "powerpoint-to-pdf": () => <PowerpointToPdfWorkspace />,
+  "excel-to-pdf": () => <ExcelToPdfWorkspace />,
 };
 
 export function renderWorkspace(slug: string): ReactElement | null {

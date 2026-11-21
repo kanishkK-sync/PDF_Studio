@@ -15,6 +15,8 @@ import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 
 type ImageListProps = {
   entries: readonly FileEntry[];
+  label?: string;
+  showPreviews?: boolean;
   disabled?: boolean;
   onMove: (id: string, delta: -1 | 1) => void;
   onRemove: (id: string) => void;
@@ -69,6 +71,8 @@ function IconButton({
 
 export function ImageList({
   entries,
+  label = "Selected images, in page order",
+  showPreviews = true,
   disabled = false,
   onMove,
   onRemove,
@@ -103,7 +107,7 @@ export function ImageList({
   }
 
   return (
-    <ol aria-label="Selected images, in page order" className="flex flex-col gap-3">
+    <ol aria-label={label} className="flex flex-col gap-3">
       {entries.map((entry, index) => {
         const name = entry.file.name;
         return (
@@ -118,11 +122,11 @@ export function ImageList({
               >
                 {index + 1}
               </span>
-              <span
+              {showPreviews && <span
                 aria-hidden="true"
                 className="size-14 shrink-0 rounded-lg border border-border bg-surface-raised bg-cover bg-center"
                 style={{ backgroundImage: `url("${entry.previewUrl}")` }}
-              />
+              />}
               <div className="min-w-0 flex-1">
                 <p
                   title={name}

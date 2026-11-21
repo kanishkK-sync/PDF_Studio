@@ -4,6 +4,8 @@ import {
   FileText,
   Minimize2,
   PenLine,
+  Combine,
+  Scissors,
   Presentation,
 } from "lucide-react";
 
@@ -12,6 +14,8 @@ export type ToolCategory = "optimize" | "edit" | "from-pdf" | "to-pdf";
 export type ToolIcon =
   | "compress"
   | "edit"
+  | "merge"
+  | "split"
   | "word"
   | "powerpoint"
   | "excel"
@@ -47,6 +51,20 @@ export const tools: readonly Tool[] = [
     description: "Edit and replace text in a PDF.",
     category: "edit",
     icon: "edit",
+  },
+  {
+    slug: "merge-pdf",
+    title: "Merge PDF",
+    description: "Combine PDFs in the order you choose.",
+    category: "edit",
+    icon: "merge",
+  },
+  {
+    slug: "split-pdf",
+    title: "Split PDF",
+    description: "Extract pages or create separate PDFs.",
+    category: "edit",
+    icon: "split",
   },
   {
     slug: "pdf-to-word",
@@ -112,6 +130,8 @@ export const tools: readonly Tool[] = [
 export const toolIcons = {
   compress: Minimize2,
   edit: PenLine,
+  merge: Combine,
+  split: Scissors,
   word: FileText,
   powerpoint: Presentation,
   excel: FileSpreadsheet,
