@@ -15,11 +15,24 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: {
-    default: "pdf-studio",
-    template: "%s · pdf-studio",
+    default: "pdf-studio — Privacy-First PDF Workstation",
+    template: "%s | pdf-studio",
   },
-  description: "A local document workstation for PDF conversion, editing, and comparison.",
+  description: "Convert, edit, compare, and protect documents with 15 free PDF tools. Local processing and temporary job storage provide zero long-term file retention.",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "pdf-studio",
+    title: "pdf-studio — Privacy-First PDF Workstation",
+    description: "15 free PDF tools for local conversion, editing, comparison, and redaction with zero long-term file retention.",
+  },
+  twitter: {
+    card: "summary",
+    title: "pdf-studio — Privacy-First PDF Workstation",
+    description: "15 free PDF tools for local conversion, editing, comparison, and redaction with zero long-term file retention.",
+  },
 };
 
 export default function RootLayout({
