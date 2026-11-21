@@ -9,10 +9,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-from httpx import Response
-from PIL import Image
-
 from app.api.routes import pdf_to_jpg as pdf_to_jpg_route
 from app.core.config import get_settings
 from app.core.errors import (
@@ -28,6 +24,9 @@ from app.core.errors import (
 )
 from app.services import pdf_to_jpg as engine
 from app.services.pdf_to_jpg import PdfToJpgResult, convert_pdf_to_jpg, parse_quality
+from fastapi.testclient import TestClient
+from httpx import Response
+from PIL import Image
 
 PdfFactory = Callable[..., Path]
 PostPdfToJpg = Callable[..., Response]

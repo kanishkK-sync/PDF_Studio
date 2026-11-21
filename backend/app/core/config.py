@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     max_images: PositiveInt = 50
     max_render_pixels: PositiveInt = 30_000_000
 
+    # Most PDFs merged in one job.
+    max_merge_files: PositiveInt = 20
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

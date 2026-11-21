@@ -10,10 +10,6 @@ from typing import Any
 
 import pymupdf
 import pytest
-from fastapi.testclient import TestClient
-from httpx import Response
-from PIL import Image
-
 from app.api.routes import jobs as jobs_route
 from app.api.routes import jpg_to_pdf as jpg_to_pdf_route
 from app.core.config import get_settings
@@ -33,6 +29,9 @@ from app.services.jpg_to_pdf import (
     parse_page_size,
 )
 from app.utils.uploads import looks_like_jpeg, looks_like_png
+from fastapi.testclient import TestClient
+from httpx import Response
+from PIL import Image
 
 PostJpgToPdf = Callable[..., Response]
 

@@ -32,6 +32,7 @@ INVALID_PAGE_SIZE = "invalid_page_size"
 
 # Phase 3 error codes
 NO_CONTENT = "no_content"
+INVALID_RANGES = "invalid_ranges"
 
 # HTTP status for each code
 ERROR_STATUS: dict[str, int] = {
@@ -50,6 +51,7 @@ ERROR_STATUS: dict[str, int] = {
     INVALID_QUALITY: 422,
     INVALID_PAGE_SIZE: 422,
     NO_CONTENT: 422,
+    INVALID_RANGES: 422,
 }
 
 # Default friendly message for each code
@@ -69,6 +71,7 @@ ERROR_MESSAGES: dict[str, str] = {
     INVALID_QUALITY: "Please choose an image quality: low, medium or high.",
     INVALID_PAGE_SIZE: "Please choose a page size: fit or A4.",
     NO_CONTENT: "We couldn't find any tables or text in this PDF. If it is a scan, it needs text recognition, which pdf-studio doesn't have.",
+    INVALID_RANGES: "We couldn't read those page numbers. Use numbers and ranges such as 1-3, 5, 8-.",
 }
 
 

@@ -10,9 +10,6 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-from httpx import Response
-
 from app.api.routes import pdf_to_word as pdf_to_word_route
 from app.core.config import get_settings
 from app.core.errors import (
@@ -28,6 +25,8 @@ from app.core.errors import (
 )
 from app.services import pdf_to_word as engine
 from app.services.pdf_to_word import PdfToWordResult, convert_pdf_to_word
+from fastapi.testclient import TestClient
+from httpx import Response
 
 PdfFactory = Callable[..., Path]
 PostPdfToWord = Callable[..., Response]

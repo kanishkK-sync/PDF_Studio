@@ -10,10 +10,6 @@ from pathlib import Path
 
 import pymupdf
 import pytest
-from fastapi.testclient import TestClient
-from httpx import Response
-from openpyxl import load_workbook
-
 from app.api.routes import pdf_to_excel as pdf_to_excel_route
 from app.core.config import get_settings
 from app.core.errors import (
@@ -30,6 +26,9 @@ from app.core.errors import (
 )
 from app.services import pdf_to_excel as engine
 from app.services.pdf_to_excel import PdfToExcelResult, convert_pdf_to_excel
+from fastapi.testclient import TestClient
+from httpx import Response
+from openpyxl import load_workbook
 
 PdfFactory = Callable[..., Path]
 PostPdfToExcel = Callable[..., Response]

@@ -89,3 +89,34 @@ class PdfToPptxResponse(BaseModel):
     result_size: int
     download_name: str
     download_url: str
+
+
+class MergeResponse(BaseModel):
+    """Payload returned by POST /api/merge."""
+
+    job_id: str
+    file_count: int
+    page_count: int
+    total_input_size: int
+    result_size: int
+    download_name: str
+    download_url: str
+
+
+SplitMode = Literal["extract", "separate"]
+SplitKind = Literal["pdf", "zip"]
+
+
+class SplitResponse(BaseModel):
+    """Payload returned by POST /api/split."""
+
+    job_id: str
+    original_name: str
+    page_count: int
+    selected_pages: int
+    file_count: int
+    kind: SplitKind
+    mode: SplitMode
+    result_size: int
+    download_name: str
+    download_url: str

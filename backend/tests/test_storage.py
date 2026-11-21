@@ -8,11 +8,10 @@ import uuid
 from pathlib import Path
 
 import pytest
-from fastapi import UploadFile
-
 from app.core.config import get_settings
 from app.core.errors import AppError
 from app.utils import storage, uploads
+from fastapi import UploadFile
 
 MEGABYTE = 1024 * 1024
 DAY = 24 * 60 * 60

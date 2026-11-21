@@ -8,9 +8,6 @@ from pathlib import Path
 
 import pymupdf
 import pytest
-from fastapi.testclient import TestClient
-from httpx import Response
-
 from app.api.routes import compress as compress_route
 from app.core.config import get_settings
 from app.core.errors import (
@@ -25,6 +22,8 @@ from app.core.errors import (
 )
 from app.services import compress as compress_module
 from app.services.compress import CompressionResult, compress_pdf, parse_level
+from fastapi.testclient import TestClient
+from httpx import Response
 
 PdfFactory = Callable[..., Path]
 PostCompress = Callable[..., Response]
