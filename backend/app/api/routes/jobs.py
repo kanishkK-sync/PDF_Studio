@@ -22,6 +22,7 @@ _RANGE_HEADERS = {b"range", b"if-range"}
 # is data on disk and is never trusted as a path or a header, so the file name
 # must be exactly one of these keys and the Content-Type comes only from here.
 RESULT_TYPES: Mapping[str, tuple[str, str]] = {
+    "result.md": ("text/markdown", ".md"),
     "result.pdf": ("application/pdf", ".pdf"),
     "result.jpg": ("image/jpeg", ".jpg"),
     "result.zip": ("application/zip", ".zip"),

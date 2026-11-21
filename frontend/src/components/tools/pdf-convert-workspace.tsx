@@ -60,6 +60,8 @@ type PdfConvertWorkspaceProps<R extends PdfConvertResult> = {
   fileLabel?: string;
   fileDescription?: string;
   canRun?: boolean;
+  maxBytes?: number;
+  resultDetails?: (result: R) => ReactNode;
   // Primary button text, for example "Convert to Word".
   actionLabel: string;
   actionIcon: ReactNode;
@@ -131,6 +133,8 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
   fileLabel,
   fileDescription,
   canRun = true,
+  maxBytes = MAX_UPLOAD_BYTES,
+  resultDetails,
   actionLabel,
   actionIcon,
   busyLabel,
@@ -265,7 +269,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
             accept={accept}
             label={fileLabel}
             fileDescription={fileDescription}
-            maxSizeBytes={MAX_UPLOAD_BYTES}
+            maxSizeBytes={maxBytes}
             onSelect={handleSelect}
             onReject={setRejection}
           />
@@ -296,7 +300,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
             <ErrorBanner
               ref={errorRef}
               message={error.message}
-              onRetry={retryable ? handleConvert : undefined}
+              onRetry={retryable && canRun ? handleConvert : undefined}
             />
           )}
 
@@ -373,7 +377,9 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
             onReset={handleAnother}
             resetLabel={resetLabel}
             headingRef={resultHeadingRef}
-          />
+          >
+            {resultDetails?.(result)}
+          </ConversionResult>
         </motion.div>
       )}
     </div>

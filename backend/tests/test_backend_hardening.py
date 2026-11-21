@@ -24,6 +24,8 @@ PDF_ROUTES = (
     "/api/merge",
     "/api/split",
     "/api/edit-pdf",
+    "/api/redact-pdf",
+    "/api/pdf-to-markdown",
 )
 
 
@@ -39,6 +41,7 @@ def _post_pdf(client: TestClient, route: str, content: bytes):
         "/api/pdf-to-pptx": {"mode": "pictures"},
         "/api/split": {"ranges": "1", "mode": "extract"},
         "/api/edit-pdf": {"find": "hello", "replace": "world"},
+        "/api/redact-pdf": {"terms": "private"},
     }.get(route, {})
     return client.post(route, files={"file": ("a.pdf", content)}, data=data)
 

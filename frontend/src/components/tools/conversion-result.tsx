@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Download, RotateCcw } from "lucide-react";
-import { useId, useRef, type MouseEvent, type Ref } from "react";
+import { useId, useRef, type MouseEvent, type ReactNode, type Ref } from "react";
 import { buildDownloadUrl } from "@/lib/api";
 import {
   microInteractions,
@@ -21,6 +21,7 @@ type ConversionResultProps = {
   title: string;
   description: string;
   rows: readonly ResultRow[];
+  children?: ReactNode;
   // The contract's relative download_url; resolved against the API host here.
   downloadUrl: string;
   downloadLabel: string;
@@ -43,6 +44,7 @@ export function ConversionResult({
   title,
   description,
   rows,
+  children,
   downloadUrl,
   downloadLabel,
   downloaded,
@@ -84,7 +86,7 @@ export function ConversionResult({
         </p>
       </div>
 
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {rows.length > 0 && <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {rows.map((row) => (
           <div key={row.label} className="flex min-w-0 flex-col gap-1">
             <dt className="text-xs text-muted">{row.label}</dt>
@@ -93,7 +95,8 @@ export function ConversionResult({
             </dd>
           </div>
         ))}
-      </dl>
+      </dl>}
+      {children}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <motion.a

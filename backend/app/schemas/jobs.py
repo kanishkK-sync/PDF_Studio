@@ -138,3 +138,22 @@ class EditPdfResponse(OfficeToPdfResponse):
     """Payload returned after replacing text in a PDF."""
 
     replacement_count: int
+
+
+class PdfFileResponse(BaseModel):
+    job_id: str
+    download_name: str
+    download_url: str
+
+
+class RedactResponse(PdfFileResponse):
+    redacted_count: int
+    metadata_scrubbed: bool
+    verified_unrecoverable: bool
+
+
+class MarkdownResponse(PdfFileResponse):
+    page_count: int
+    word_count: int
+    estimated_tokens: int
+    markdown: str

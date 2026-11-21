@@ -8,6 +8,11 @@ export const MAX_UPLOAD_MB =
   Number.isFinite(parsedMaxMb) && parsedMaxMb > 0 ? parsedMaxMb : 100;
 export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 
+export const pdfTextTools = {
+  "redact-pdf": { maxBytes: MAX_UPLOAD_BYTES, maxTerms: 100, maxCharacters: 8000 },
+  "pdf-to-markdown": { maxBytes: MAX_UPLOAD_BYTES },
+} as const;
+
 const parsedMaxImages = Number(process.env.NEXT_PUBLIC_MAX_IMAGES);
 export const MAX_IMAGES =
   Number.isInteger(parsedMaxImages) && parsedMaxImages > 0

@@ -17,8 +17,10 @@ from app.api.routes import (
     merge,
     office_to_pdf,
     pdf_edit,
+    pdf_redact,
     pdf_to_excel,
     pdf_to_jpg,
+    pdf_to_markdown,
     pdf_to_pptx,
     pdf_to_word,
     split,
@@ -84,6 +86,8 @@ app.add_middleware(
     allow_origins=[settings.frontend_origin],
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["X-Redacted-Count", "X-Metadata-Scrubbed", "X-Verified-Unrecoverable",
+                    "X-Page-Count", "X-Word-Count", "X-Estimated-Tokens"],
 )
 
 app.include_router(health.router, prefix="/api")
@@ -98,3 +102,5 @@ app.include_router(merge.router, prefix="/api")
 app.include_router(split.router, prefix="/api")
 app.include_router(office_to_pdf.router, prefix="/api")
 app.include_router(pdf_edit.router, prefix="/api")
+app.include_router(pdf_redact.router, prefix="/api")
+app.include_router(pdf_to_markdown.router, prefix="/api")

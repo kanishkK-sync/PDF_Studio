@@ -464,6 +464,7 @@ def test_a_stored_download_name_is_sanitised_and_keeps_the_fixed_extension(
 
 def test_engine_result_names_match_the_download_allowlist() -> None:
     assert dict(jobs_route.RESULT_TYPES) == {
+        "result.md": ("text/markdown", ".md"),
         "result.pdf": ("application/pdf", ".pdf"),
         "result.jpg": ("image/jpeg", ".jpg"),
         "result.zip": ("application/zip", ".zip"),

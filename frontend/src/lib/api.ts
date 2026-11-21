@@ -16,6 +16,63 @@ const TIMEOUT_MESSAGE =
 
 export type Level = "light" | "balanced" | "strong";
 
+type DownloadJob = { job_id: string; download_url: string; download_name: string };
+export type Redaction = DownloadJob & {
+  redacted_count: number;
+  metadata_scrubbed: boolean;
+  verified_unrecoverable: true;
+};
+export type MarkdownFile = DownloadJob & {
+  page_count: number;
+  word_count: number;
+  estimated_tokens: number;
+  markdown: string;
+};
+
+function isDownloadJob(data: unknown): data is DownloadJob & Record<string, unknown> {
+  return isRecord(data)
+    && typeof data.job_id === "string"
+    && typeof data.download_url === "string"
+    && typeof data.download_name === "string";
+}
+
+function isRedaction(data: unknown): data is Redaction {
+  return isDownloadJob(data)
+    && typeof data.redacted_count === "number"
+    && typeof data.metadata_scrubbed === "boolean"
+    && data.verified_unrecoverable === true;
+}
+
+function isMarkdownFile(data: unknown): data is MarkdownFile {
+  return isDownloadJob(data)
+    && typeof data.markdown === "string"
+    && typeof data.page_count === "number"
+    && typeof data.word_count === "number"
+    && typeof data.estimated_tokens === "number";
+}
+
+export function redactPdf(
+  file: File,
+  terms: string,
+  presets: string[],
+  scrub: boolean,
+  callbacks: UploadCallbacks,
+) {
+  const form = new FormData();
+  form.set("file", file);
+  form.set("terms", terms);
+  form.set("presets", presets.join(","));
+  form.set("scrub_metadata", String(scrub));
+  return postMultipart("/api/redact-pdf", form, data => isRedaction(data) ? data : null, callbacks);
+}
+
+export function pdfToMarkdown(file: File, markers: boolean, callbacks: UploadCallbacks) {
+  const form = new FormData();
+  form.set("file", file);
+  form.set("include_page_markers", String(markers));
+  return postMultipart("/api/pdf-to-markdown", form, data => isMarkdownFile(data) ? data : null, callbacks);
+}
+
 export type CompressResult = {
   job_id: string;
   original_name: string;

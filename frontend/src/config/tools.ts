@@ -7,11 +7,15 @@ import {
   Combine,
   Scissors,
   Presentation,
+  ShieldCheck,
+  FileCode,
 } from "lucide-react";
 
 export type ToolCategory = "optimize" | "edit" | "from-pdf" | "to-pdf";
 
 export type ToolIcon =
+  | "redact"
+  | "markdown"
   | "compress"
   | "edit"
   | "merge"
@@ -38,6 +42,20 @@ export const categories: readonly { id: ToolCategory; label: string }[] = [
 ];
 
 export const tools: readonly Tool[] = [
+  {
+    slug: "redact-pdf",
+    title: "Redact PDF",
+    description: "Permanently remove matching page text and scrub metadata.",
+    category: "edit",
+    icon: "redact",
+  },
+  {
+    slug: "pdf-to-markdown",
+    title: "PDF to AI Markdown",
+    description: "Extract structured Markdown for notes and language models.",
+    category: "from-pdf",
+    icon: "markdown",
+  },
   {
     slug: "compress-pdf",
     title: "Compress PDF",
@@ -128,6 +146,8 @@ export const tools: readonly Tool[] = [
 // string key, because component functions can't cross from server components
 // to client components. Client components look the icon up: toolIcons[tool.icon].
 export const toolIcons = {
+  redact: ShieldCheck,
+  markdown: FileCode,
   compress: Minimize2,
   edit: PenLine,
   merge: Combine,
