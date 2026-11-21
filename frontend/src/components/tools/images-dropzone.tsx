@@ -6,6 +6,7 @@ import { useId, useImperativeHandle, type Ref } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import type { FileDropzoneHandle } from "@/components/tools/file-dropzone";
 import { formatBytes } from "@/lib/format";
+import { validateUploadFile } from "@/lib/file-guardrails";
 import { scaleIn, scaleInReduced } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
@@ -37,6 +38,14 @@ function rejectionMessage(
   );
 
   const parts: string[] = [];
+  for (const rejection of rejections.slice(0, 3)) {
+    const custom = rejection.errors.find((error) =>
+      ["file-empty", "file-invalid-extension", "file-too-large"].includes(error.code),
+    );
+    if (custom) parts.push(custom.message);
+  }
+  if (rejections.length > 3) parts.push(`${rejections.length - 3} more files were skipped.`);
+  if (parts.length > 0) return parts.join(" ");
   if (codes.has("file-invalid-type")) {
     parts.push(`Only ${fileDescription} can be used, so other files were skipped.`);
   }
@@ -68,9 +77,9 @@ export function ImagesDropzone({
   const { getRootProps, getInputProps, isDragActive, isDragReject, rootRef } =
     useDropzone({
       accept,
-      maxSize: maxBytes,
       multiple: true,
       disabled,
+      validator: (file) => validateUploadFile(file, accept, maxBytes),
       onDropAccepted: (files) => {
         onSelect(files);
       },
@@ -105,7 +114,7 @@ export function ImagesDropzone({
       })}
       data-drag={isDragActive ? "true" : "false"}
       className={cn(
-        "group flex cursor-pointer border-2 border-dashed bg-surface text-center transition-[border-color,box-shadow,background-color] duration-300",
+        "group flex cursor-pointer border-2 border-dashed bg-surface text-center transition-[border-color,box-shadow,background-color] duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet",
         compact
           ? "flex-row items-center justify-center gap-3 rounded-xl px-4 py-4"
           : "flex-col items-center justify-center gap-4 rounded-2xl px-6 py-14",

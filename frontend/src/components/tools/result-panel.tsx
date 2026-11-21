@@ -7,7 +7,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { Download, RotateCcw } from "lucide-react";
-import { useEffect, useId, type MouseEvent, type Ref } from "react";
+import { useEffect, useId, useRef, type MouseEvent, type Ref } from "react";
 import { buildDownloadUrl, type CompressResult } from "@/lib/api";
 import { formatBytes, formatPercent } from "@/lib/format";
 import {
@@ -48,6 +48,7 @@ export function ResultPanel({
   const reduced = useReducedMotionSafe();
   const interactions = reduced ? microInteractionsReduced : microInteractions;
   const headingId = useId();
+  const downloadStarted = useRef(false);
 
   const optimized = result.already_optimized;
   const target = Number.isFinite(result.saved_percent)
@@ -73,10 +74,11 @@ export function ResultPanel({
   }, [count, reduced, target]);
 
   function handleDownloadClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (downloaded) {
+    if (downloaded || downloadStarted.current) {
       event.preventDefault();
       return;
     }
+    downloadStarted.current = true;
     onDownload();
   }
 
@@ -166,12 +168,15 @@ export function ResultPanel({
         <motion.a
           href={buildDownloadUrl(result.download_url)}
           aria-disabled={downloaded}
+          aria-label="Download PDF"
+          tabIndex={downloaded ? -1 : 0}
           onClick={handleDownloadClick}
           whileHover={downloaded ? undefined : interactions.hover}
           whileTap={downloaded ? undefined : interactions.tap}
           transition={microTransition}
           className={cn(
             primaryClass,
+            "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet",
             downloaded && "pointer-events-none opacity-60",
           )}
         >
@@ -185,7 +190,7 @@ export function ResultPanel({
           whileHover={interactions.hover}
           whileTap={interactions.tap}
           transition={microTransition}
-          className={secondaryClass}
+          className={`${secondaryClass} focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet`}
         >
           <RotateCcw aria-hidden="true" className="size-4" />
           {resetLabel}

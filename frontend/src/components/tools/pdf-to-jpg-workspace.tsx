@@ -325,12 +325,11 @@ export function PdfToJpgWorkspace() {
             disabled={busy}
           />
 
-          {/* aria-disabled instead of disabled (or unmounting) so the button
-              keeps keyboard focus while the job runs. */}
           <div className="flex flex-col items-start gap-4">
             <motion.button
               ref={convertButtonRef}
               type="button"
+              disabled={busy}
               aria-disabled={busy}
               onClick={() => {
                 if (!busy) handleConvert();

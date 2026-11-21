@@ -7,14 +7,16 @@ import type { JobCallbacks, JobRun, JobStatus } from "@/lib/use-tool-job";
 export type FileEntry = {
   id: string;
   file: File;
-  // Object URL for the thumbnail. Created in add(), revoked when the entry
-  // leaves the list and when the hook unmounts.
+  // Object URL for image thumbnails, or empty when previews are disabled.
+  // Created in add() and revoked on removal, reset or unmount.
   previewUrl: string;
 };
 
 export type AddResult = {
   added: number;
   skipped: number;
+  overTotal: number;
+  overCount: number;
 };
 
 // Starts one job for an ordered list of files. The hook knows nothing about
@@ -165,7 +167,11 @@ export type MultiFileJob<R> = {
   cancel: () => void;
 };
 
-export function useMultiFileJob<R>(maxFiles: number): MultiFileJob<R> {
+export function useMultiFileJob<R>(
+  maxFiles: number,
+  maxTotalBytes: number,
+  previews = true,
+): MultiFileJob<R> {
   const [state, dispatch] = useReducer<State<R>, [Action<R>]>(
     reducer,
     INITIAL_STATE,
@@ -173,6 +179,7 @@ export function useMultiFileJob<R>(maxFiles: number): MultiFileJob<R> {
   const activeRef = useRef<ActiveRun | null>(null);
   const nextIdRef = useRef(0);
   const entriesRef = useRef<FileEntry[]>([]);
+  const urlsRef = useRef<Set<string>>(new Set());
 
   // Lets the unmount cleanup see the last committed list.
   useEffect(() => {
@@ -182,66 +189,90 @@ export function useMultiFileJob<R>(maxFiles: number): MultiFileJob<R> {
   // Abort on unmount so nothing updates state afterwards, and free the
   // thumbnail URLs.
   useEffect(() => {
+    const urls = urlsRef.current;
     return () => {
       const run = activeRef.current;
       activeRef.current = null;
       run?.abort();
-      for (const entry of entriesRef.current) {
-        URL.revokeObjectURL(entry.previewUrl);
-      }
+      for (const url of urls) URL.revokeObjectURL(url);
+      urls.clear();
     };
   }, []);
 
   const add = useCallback(
     (files: readonly File[]): AddResult => {
       const editable = isEditable(state.status) && !activeRef.current;
-      const room = editable ? Math.max(0, maxFiles - state.entries.length) : 0;
-      const taken = files.slice(0, room);
-      if (taken.length === 0) return { added: 0, skipped: files.length };
-
-      const entries = taken.map((file): FileEntry => {
+      if (!editable) return { added: 0, skipped: files.length, overTotal: 0, overCount: files.length };
+      const current = entriesRef.current;
+      let total = current.reduce((sum, entry) => sum + entry.file.size, 0);
+      let overTotal = 0;
+      let overCount = 0;
+      const entries: FileEntry[] = [];
+      for (const file of files) {
+        if (current.length + entries.length >= maxFiles) {
+          overCount += 1;
+          continue;
+        }
+        if (file.size === 0 || total + file.size > maxTotalBytes) {
+          overTotal += 1;
+          continue;
+        }
         nextIdRef.current += 1;
-        return {
+        const previewUrl = previews ? URL.createObjectURL(file) : "";
+        if (previewUrl) urlsRef.current.add(previewUrl);
+        entries.push({
           id: `file-${nextIdRef.current}`,
           file,
-          previewUrl: URL.createObjectURL(file),
-        };
-      });
+          previewUrl,
+        });
+        total += file.size;
+      }
+      if (entries.length === 0) return { added: 0, skipped: files.length, overTotal, overCount };
+      entriesRef.current = [...current, ...entries];
       dispatch({ type: "add", entries, max: maxFiles });
-      return { added: taken.length, skipped: files.length - taken.length };
+      return { added: entries.length, skipped: files.length - entries.length, overTotal, overCount };
     },
-    [maxFiles, state.entries.length, state.status],
+    [maxFiles, maxTotalBytes, previews, state.status],
   );
 
   const remove = useCallback(
     (id: string) => {
       if (activeRef.current) return;
-      const entry = state.entries.find((item) => item.id === id);
+      const entry = entriesRef.current.find((item) => item.id === id);
       if (!entry) return;
-      URL.revokeObjectURL(entry.previewUrl);
+      entriesRef.current = entriesRef.current.filter((item) => item.id !== id);
+      if (entry.previewUrl && urlsRef.current.delete(entry.previewUrl)) URL.revokeObjectURL(entry.previewUrl);
       dispatch({ type: "remove", id });
     },
-    [state.entries],
+    [],
   );
 
   const move = useCallback((id: string, delta: -1 | 1) => {
     if (activeRef.current) return;
+    const from = entriesRef.current.findIndex((entry) => entry.id === id);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= entriesRef.current.length) return;
+    const entries = [...entriesRef.current];
+    const [moved] = entries.splice(from, 1);
+    if (!moved) return;
+    entries.splice(to, 0, moved);
+    entriesRef.current = entries;
     dispatch({ type: "move", id, delta });
   }, []);
 
   const clear = useCallback(() => {
     if (activeRef.current) return;
-    for (const entry of state.entries) {
-      URL.revokeObjectURL(entry.previewUrl);
-    }
+    for (const url of urlsRef.current) URL.revokeObjectURL(url);
+    urlsRef.current.clear();
+    entriesRef.current = [];
     dispatch({ type: "clear" });
-  }, [state.entries]);
+  }, []);
 
   const start = useCallback(
     (runner: MultiJobRunner<R>) => {
-      if (state.entries.length === 0 || activeRef.current) return;
+      if (entriesRef.current.length === 0 || activeRef.current) return;
       if (state.status !== "ready" && state.status !== "error") return;
-      const files = state.entries.map((entry) => entry.file);
+      const files = entriesRef.current.map((entry) => entry.file);
 
       const run: ActiveRun = { abort: () => {}, uploading: true };
       activeRef.current = run;
@@ -282,7 +313,7 @@ export function useMultiFileJob<R>(maxFiles: number): MultiFileJob<R> {
         },
       );
     },
-    [state.entries, state.status],
+    [state.status],
   );
 
   // Only while the files are still being sent. Once the server is working,

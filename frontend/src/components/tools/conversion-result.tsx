@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Download, RotateCcw } from "lucide-react";
-import { useId, type MouseEvent, type Ref } from "react";
+import { useId, useRef, type MouseEvent, type Ref } from "react";
 import { buildDownloadUrl } from "@/lib/api";
 import {
   microInteractions,
@@ -54,12 +54,14 @@ export function ConversionResult({
   const reduced = useReducedMotionSafe();
   const interactions = reduced ? microInteractionsReduced : microInteractions;
   const headingId = useId();
+  const downloadStarted = useRef(false);
 
   function handleDownloadClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (downloaded) {
+    if (downloaded || downloadStarted.current) {
       event.preventDefault();
       return;
     }
+    downloadStarted.current = true;
     onDownload();
   }
 
@@ -97,12 +99,15 @@ export function ConversionResult({
         <motion.a
           href={buildDownloadUrl(downloadUrl)}
           aria-disabled={downloaded}
+          aria-label={downloadLabel}
+          tabIndex={downloaded ? -1 : 0}
           onClick={handleDownloadClick}
           whileHover={downloaded ? undefined : interactions.hover}
           whileTap={downloaded ? undefined : interactions.tap}
           transition={microTransition}
           className={cn(
             primaryClass,
+            "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet",
             downloaded && "pointer-events-none opacity-60",
           )}
         >
@@ -116,7 +121,7 @@ export function ConversionResult({
           whileHover={interactions.hover}
           whileTap={interactions.tap}
           transition={microTransition}
-          className={secondaryClass}
+          className={`${secondaryClass} focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet`}
         >
           <RotateCcw aria-hidden="true" className="size-4" />
           {resetLabel}

@@ -86,20 +86,37 @@ const SPLIT_OPTIONS: readonly ChoiceOption<SplitMode>[] = [
   { id: "extract", title: "Extract", description: "Put all selected pages into one PDF." },
   { id: "separate", title: "Separate", description: "Create one PDF per range and download a ZIP." },
 ];
-const RANGE_PATTERN = /^\s*\d{1,6}\s*(?:-\s*\d{0,6})?\s*(?:,\s*\d{1,6}\s*(?:-\s*\d{0,6})?\s*)*$/;
+const RANGE_ITEM = /^(\d{1,6})(?:\s*-\s*(\d{0,6}))?$/;
+
+function rangeError(value: string): string | null {
+  if (!value.trim()) return null;
+  const items = value.split(",");
+  if (items.length > 100) return "Choose at most 100 ranges.";
+  for (const item of items) {
+    const match = RANGE_ITEM.exec(item.trim());
+    if (!match) return "Use page numbers and ranges such as 1-3, 5, 8-.";
+    const start = Number(match[1]);
+    const end = match[2] === undefined || match[2] === "" ? null : Number(match[2]);
+    if (start < 1 || (end !== null && end < start)) {
+      return "Page numbers must start at 1 and range ends must follow their starts.";
+    }
+  }
+  return null;
+}
 
 export function SplitPdfWorkspace() {
   const [ranges, setRanges] = useState("");
   const [mode, setMode] = useState<SplitMode>("extract");
   const rangeId = useId();
+  const validation = rangeError(ranges);
   return <PdfConvertWorkspace<DocumentResult>
     actionLabel="Split PDF"
     actionIcon={<Scissors aria-hidden="true" className="size-4" />}
     busyLabel="Splitting PDF"
     busyAnnouncement="Splitting your PDF."
-    canRun={RANGE_PATTERN.test(ranges)}
+    canRun={ranges.trim().length > 0 && validation === null}
     options={(busy) => <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2"><label htmlFor={rangeId} className="text-sm font-medium text-foreground">Pages or ranges</label><input id={rangeId} className={fieldClass} placeholder="1-3, 5, 8-" value={ranges} disabled={busy} onChange={(e) => setRanges(e.target.value)} aria-describedby={`${rangeId}-hint`} /><p id={`${rangeId}-hint`} className="text-sm text-muted">Use page numbers starting at 1. An open range such as 8- runs to the final page.</p></div>
+      <div className="flex flex-col gap-2"><label htmlFor={rangeId} className="text-sm font-medium text-foreground">Pages or ranges</label><input id={rangeId} className={fieldClass} placeholder="1-3, 5, 8-" value={ranges} disabled={busy} onChange={(e) => setRanges(e.target.value)} aria-invalid={validation !== null} aria-describedby={`${rangeId}-hint${validation ? ` ${rangeId}-error` : ""}`} /><p id={`${rangeId}-hint`} className="text-sm text-muted">Use page numbers starting at 1. An open range such as 8- runs to the final page.</p>{validation && <p id={`${rangeId}-error`} role="alert" className="text-sm text-accent-amber">{validation}</p>}</div>
       <OptionGroup label="Split method" options={SPLIT_OPTIONS} value={mode} onChange={setMode} disabled={busy} columns={2} />
     </div>}
     run={(file, callbacks) => splitPdf(file, ranges, mode, callbacks)}

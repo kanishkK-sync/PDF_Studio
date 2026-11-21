@@ -154,6 +154,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
 
   const dropzoneRef = useRef<FileDropzoneHandle>(null);
   const actionButtonRef = useRef<HTMLButtonElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const previousStatusRef = useRef<JobStatus>("idle");
@@ -169,7 +170,11 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
     if (previous === status) return;
 
     if (status === "ready") {
-      actionButtonRef.current?.focus();
+      if (canRun) {
+        actionButtonRef.current?.focus();
+      } else {
+        optionsRef.current?.querySelector<HTMLElement>("input, textarea, button")?.focus();
+      }
     } else if (status === "done") {
       resultHeadingRef.current?.focus();
     } else if (status === "error") {
@@ -177,7 +182,7 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
     } else if (status === "idle") {
       dropzoneRef.current?.focus();
     }
-  }, [status]);
+  }, [status, canRun]);
 
   useEffect(() => {
     pendingJobRef.current = result && !downloaded ? result.job_id : null;
@@ -295,18 +300,17 @@ export function PdfConvertWorkspace<R extends PdfConvertResult>({
             />
           )}
 
-          {options?.(busy)}
+          {options && <div ref={optionsRef}>{options(busy)}</div>}
 
           {fidelityNote && (
             <p className="text-sm leading-relaxed text-muted">{fidelityNote}</p>
           )}
 
-          {/* aria-disabled instead of disabled (or unmounting) so the button
-              keeps keyboard focus while the job runs. */}
           <div className="flex flex-col items-start gap-4">
             <motion.button
               ref={actionButtonRef}
               type="button"
+              disabled={busy || !canRun}
               aria-disabled={busy || !canRun}
               onClick={() => {
                 if (!busy && canRun) handleConvert();

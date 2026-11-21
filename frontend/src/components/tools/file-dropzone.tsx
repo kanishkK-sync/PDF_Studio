@@ -5,6 +5,7 @@ import { Upload } from "lucide-react";
 import { useId, useImperativeHandle, type Ref } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { formatBytes } from "@/lib/format";
+import { validateUploadFile } from "@/lib/file-guardrails";
 import { scaleIn, scaleInReduced } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
@@ -40,6 +41,10 @@ function rejectionMessage(
   if (rejections.length > 1 || codes.has("too-many-files")) {
     return "Please choose one file at a time.";
   }
+  const custom = rejections[0]?.errors.find((error) =>
+    ["file-empty", "file-invalid-extension", "file-too-large"].includes(error.code),
+  );
+  if (custom) return custom.message;
   if (codes.has("file-invalid-type")) {
     return `That file isn't a ${fileDescription}. Please choose the right file type.`;
   }
@@ -65,9 +70,9 @@ export function FileDropzone({
   const { getRootProps, getInputProps, isDragActive, isDragReject, rootRef } =
     useDropzone({
       accept,
-      maxSize: maxSizeBytes,
       multiple: false,
       disabled,
+      validator: (file) => validateUploadFile(file, accept, maxSizeBytes),
       onDropAccepted: (files) => {
         const file = files[0];
         if (file) onSelect(file);
@@ -109,7 +114,7 @@ export function FileDropzone({
         })}
         data-drag={isDragActive ? "true" : "false"}
         className={cn(
-          "group flex cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed bg-surface px-6 py-14 text-center transition-[border-color,box-shadow,background-color] duration-300",
+          "group flex cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed bg-surface px-6 py-14 text-center transition-[border-color,box-shadow,background-color] duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-violet",
           isDragActive && isDragReject
             ? "border-accent-amber bg-surface-raised"
             : isDragActive

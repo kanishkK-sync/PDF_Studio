@@ -126,7 +126,7 @@ export function JpgToPdfWorkspace() {
   const enter = reduced ? fadeRiseReduced : fadeRise;
   const limitId = useId();
 
-  const job = useMultiFileJob<JpgToPdfResult>(MAX_IMAGES);
+  const job = useMultiFileJob<JpgToPdfResult>(MAX_IMAGES, MAX_UPLOAD_BYTES);
   const { status, entries, progress, result, error } = job;
 
   const [pageSize, setPageSize] = useState<PageSize>("fit");
@@ -183,11 +183,14 @@ export function JpgToPdfWorkspace() {
   function handleSelect(files: File[]) {
     setCancelled(false);
     setDownloaded(false);
-    const { added, skipped } = job.add(files);
+    const { added, skipped, overTotal, overCount } = job.add(files);
     if (skipped > 0) {
-      setNotice(
-        `One PDF can hold ${MAX_IMAGES} images, so ${skipped} ${skipped === 1 ? "image was" : "images were"} skipped.`,
-      );
+      setNotice([
+        overTotal > 0 ? `${overTotal} ${overTotal === 1 ? "image was" : "images were"} skipped because the total would exceed ${formatBytes(MAX_UPLOAD_BYTES)}.` : "",
+        overCount > 0 ? `${overCount} ${overCount === 1 ? "image was" : "images were"} skipped because the limit is ${MAX_IMAGES} images.` : "",
+      ].filter(Boolean).join(" "));
+    } else {
+      setNotice(null);
     }
     if (added > 0) {
       setNote(
@@ -365,12 +368,11 @@ export function JpgToPdfWorkspace() {
             columns={2}
           />
 
-          {/* aria-disabled instead of disabled (or unmounting) so the button
-              keeps keyboard focus while the job runs. */}
           <div className="flex flex-col items-start gap-4">
             <motion.button
               ref={convertButtonRef}
               type="button"
+              disabled={!canConvert}
               aria-disabled={!canConvert}
               aria-describedby={overLimit ? limitId : undefined}
               onClick={() => {

@@ -10,7 +10,9 @@ const UNEXPECTED_CODE = "unexpected_response";
 const UNEXPECTED_MESSAGE =
   "Something went wrong on the server. Please try again.";
 const NETWORK_MESSAGE =
-  "Can't reach the pdf-studio server. Check that the backend is running on this machine, then try again.";
+  "Can't reach the pdf-studio server. Check that the backend is running, then try again.";
+const TIMEOUT_MESSAGE =
+  "The server took too long to respond. It may be starting up or busy; please try again.";
 
 export type Level = "light" | "balanced" | "strong";
 
@@ -57,6 +59,9 @@ export function isAbortError(error: unknown): boolean {
 // Turns anything thrown into an ApiError with a message safe to show.
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
+  if (error instanceof TypeError && /failed to fetch|network|load failed/i.test(error.message)) {
+    return new ApiError(NETWORK_ERROR_CODE, NETWORK_MESSAGE, 0);
+  }
   return new ApiError(UNEXPECTED_CODE, UNEXPECTED_MESSAGE, 0);
 }
 
@@ -145,6 +150,7 @@ export function postMultipart<T>(
 
   const promise = new Promise<T>((resolve, reject) => {
     xhr.open("POST", `${API_BASE_URL}${path}`);
+    xhr.timeout = 180_000;
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && event.total > 0) {
@@ -169,11 +175,21 @@ export function postMultipart<T>(
         }
         return;
       }
-      reject(errorFromBody(data, xhr.status));
+      if (xhr.status === 0) {
+        reject(new ApiError(NETWORK_ERROR_CODE, NETWORK_MESSAGE, 0));
+      } else if ([502, 503, 504].includes(xhr.status)) {
+        reject(new ApiError(NETWORK_ERROR_CODE, TIMEOUT_MESSAGE, xhr.status));
+      } else {
+        reject(errorFromBody(data, xhr.status));
+      }
     };
 
     xhr.onerror = () => {
       reject(new ApiError(NETWORK_ERROR_CODE, NETWORK_MESSAGE, 0));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new ApiError(NETWORK_ERROR_CODE, TIMEOUT_MESSAGE, 0));
     };
 
     xhr.onabort = () => {

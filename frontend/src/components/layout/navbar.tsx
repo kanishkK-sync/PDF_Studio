@@ -6,6 +6,7 @@ import { useSyncExternalStore, type MouseEvent } from "react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useSmoothScroll } from "@/components/providers/smooth-scroll-provider";
 import { scrollToTarget } from "@/lib/scroll-to";
+import { useBackendStatus } from "@/lib/use-backend-status";
 import { cn } from "@/lib/utils";
 
 const SCROLL_THRESHOLD = 16;
@@ -27,6 +28,9 @@ export function Navbar() {
   const scrolled = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const pathname = usePathname();
   const lenisRef = useSmoothScroll();
+  const backendStatus = useBackendStatus();
+  const backendLabel = backendStatus === "connected" ? "Backend connected" : backendStatus === "offline" ? "Backend offline" : "Checking backend";
+  const backendDot = backendStatus === "connected" ? "bg-emerald-600" : backendStatus === "offline" ? "bg-red-600" : "bg-accent-amber";
 
   // In-page scroll to the tool grid. On other routes the link navigates home.
   function handleToolsClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -74,6 +78,14 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          <span
+            role="status"
+            aria-label={backendLabel}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-2.5 py-2 text-xs font-medium text-muted sm:px-3"
+          >
+            <span aria-hidden="true" className={`size-2.5 rounded-full ${backendDot}`} />
+            <span aria-hidden="true" className="hidden md:inline">{backendLabel}</span>
+          </span>
           <Link
             href="/#tools"
             onClick={handleToolsClick}

@@ -11,6 +11,7 @@ const BASE_URL = (
 
 const HEALTH_URL = `${BASE_URL}/api/health`;
 const POLL_INTERVAL_MS = 10_000;
+const OFFLINE_POLL_INTERVAL_MS = 3_000;
 const TIMEOUT_MS = 3_000;
 
 // Never throws: every failure (network error, timeout, bad status, bad JSON,
@@ -41,7 +42,22 @@ export function useBackendStatus(): BackendStatus {
     let inFlight = false;
     let current: BackendStatus = "checking";
     let controller: AbortController | null = null;
-    let intervalId: number | undefined;
+    let timerId: number | undefined;
+
+    function stopPolling(): void {
+      if (timerId !== undefined) {
+        window.clearTimeout(timerId);
+        timerId = undefined;
+      }
+    }
+
+    function scheduleNext(): void {
+      stopPolling();
+      if (cancelled || document.visibilityState !== "visible") return;
+      timerId = window.setTimeout(() => {
+        void check();
+      }, current === "offline" ? OFFLINE_POLL_INTERVAL_MS : POLL_INTERVAL_MS);
+    }
 
     async function check(): Promise<void> {
       if (inFlight) return;
@@ -62,44 +78,34 @@ export function useBackendStatus(): BackendStatus {
 
       // Only report real changes, never go back to "checking", and never
       // touch state after unmount.
-      if (cancelled || next === current) return;
-      current = next;
-      setStatus(next);
-    }
-
-    function stopPolling(): void {
-      if (intervalId !== undefined) {
-        window.clearInterval(intervalId);
-        intervalId = undefined;
+      if (cancelled) return;
+      if (next !== current) {
+        current = next;
+        setStatus(next);
       }
-    }
-
-    function startPolling(): void {
-      stopPolling();
-      intervalId = window.setInterval(() => {
-        void check();
-      }, POLL_INTERVAL_MS);
+      scheduleNext();
     }
 
     function handleVisibilityChange(): void {
       if (document.visibilityState === "visible") {
         void check();
-        startPolling();
       } else {
         stopPolling();
+        controller?.abort();
       }
     }
 
     void check();
-    if (document.visibilityState === "visible") {
-      startPolling();
-    }
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("online", check);
+    window.addEventListener("focus", check);
 
     return () => {
       cancelled = true;
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", check);
+      window.removeEventListener("focus", check);
       controller?.abort();
     };
   }, []);

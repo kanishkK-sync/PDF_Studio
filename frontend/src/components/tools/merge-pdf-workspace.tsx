@@ -19,7 +19,7 @@ const ACCEPT = { "application/pdf": [".pdf"] };
 const MAX_MERGE_FILES = 20;
 
 export function MergePdfWorkspace() {
-  const job = useMultiFileJob<DocumentResult>(MAX_MERGE_FILES);
+  const job = useMultiFileJob<DocumentResult>(MAX_MERGE_FILES, MAX_UPLOAD_BYTES, false);
   const { entries, status, progress, result, error } = job;
   const [notice, setNotice] = useState<string | null>(null);
   const [downloaded, setDownloaded] = useState(false);
@@ -33,17 +33,23 @@ export function MergePdfWorkspace() {
     const previous = previousStatus.current;
     previousStatus.current = status;
     if (previous === status) return;
-    if (status === "ready" && (previous === "idle" || previous === "uploading")) actionRef.current?.focus();
+    if (status === "ready" && (previous === "idle" || previous === "uploading")) {
+      if (entries.length >= 2) actionRef.current?.focus();
+      else dropzoneRef.current?.focus();
+    }
     if (status === "error") errorRef.current?.focus();
     if (status === "done") headingRef.current?.focus();
     if (status === "idle") dropzoneRef.current?.focus();
-  }, [status]);
+  }, [status, entries.length]);
   useEffect(() => { pendingJob.current = result && !downloaded ? result.job_id : null; }, [result, downloaded]);
   useEffect(() => () => { if (pendingJob.current) void deleteJob(pendingJob.current); }, []);
 
   function add(files: File[]) {
-    const { skipped } = job.add(files);
-    setNotice(skipped ? `${skipped} files were skipped. The limit is ${MAX_MERGE_FILES} PDFs.` : null);
+    const { overTotal, overCount } = job.add(files);
+    setNotice([
+      overTotal > 0 ? `${overTotal} ${overTotal === 1 ? "PDF was" : "PDFs were"} skipped because the total would exceed ${formatBytes(MAX_UPLOAD_BYTES)}.` : "",
+      overCount > 0 ? `${overCount} ${overCount === 1 ? "PDF was" : "PDFs were"} skipped because the limit is ${MAX_MERGE_FILES} files.` : "",
+    ].filter(Boolean).join(" ") || null);
   }
   function reset() {
     if (result && !downloaded) void deleteJob(result.job_id);
@@ -69,7 +75,7 @@ export function MergePdfWorkspace() {
       <ImagesDropzone ref={dropzoneRef} accept={ACCEPT} maxBytes={MAX_UPLOAD_BYTES} fileDescription="PDF files" label={entries.length ? "Add more PDFs" : "Drop PDFs here, or choose files"} hint={`2 to ${MAX_MERGE_FILES} PDFs, ${formatBytes(MAX_UPLOAD_BYTES)} in total`} compact={entries.length > 0} disabled={busy || entries.length >= MAX_MERGE_FILES} onSelect={add} onReject={setNotice} />
       {total > MAX_UPLOAD_BYTES && <p className="text-sm text-accent-amber">Together these files exceed the {formatBytes(MAX_UPLOAD_BYTES)} limit. Remove files to continue.</p>}
       {entries.length > 0 && <div className="flex flex-col items-start gap-4">
-        <button ref={actionRef} type="button" aria-disabled={!ready} className={cn(primaryButtonClass, !ready && "cursor-not-allowed opacity-60")} onClick={() => { if (ready) job.start(mergePdf); }}><Combine aria-hidden="true" className="size-4" /> Merge PDFs</button>
+        <button ref={actionRef} type="button" disabled={!ready} aria-disabled={!ready} className={cn(primaryButtonClass, !ready && "cursor-not-allowed opacity-60")} onClick={() => { if (ready) job.start(mergePdf); }}><Combine aria-hidden="true" className="size-4" /> Merge PDFs</button>
         {busy && <div className="flex w-full flex-col gap-3">{status === "uploading" ? <ProgressBar label="Uploading" value={progress} /> : <ProgressBar label="Merging PDFs" />}{status === "uploading" && <button type="button" className={secondaryButtonClass} onClick={job.cancel}><X aria-hidden="true" className="size-4" /> Cancel upload</button>}</div>}
       </div>}
     </>}
