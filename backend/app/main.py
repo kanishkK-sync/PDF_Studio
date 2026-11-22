@@ -87,7 +87,7 @@ register_error_handlers(app)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=[o.strip() for o in settings.frontend_origin.split(",") if o.strip()],
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
     expose_headers=["Retry-After", "X-Redacted-Count", "X-Metadata-Scrubbed", "X-Verified-Unrecoverable",

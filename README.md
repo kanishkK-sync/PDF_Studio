@@ -142,7 +142,7 @@ Backend (`backend/.env`, or real environment variables). Restart `uvicorn` after
 | `MAX_MERGE_FILES` | `20` | Most PDFs accepted in one merge job. |
 | `MAX_RENDER_PIXELS` | `30000000` | Most pixels rendered for one PDF page. A larger page is rendered at a lower DPI. |
 | `STORAGE_DIR` | `backend/app/storage` | Where uploads and results are kept while a job lives. |
-| `FRONTEND_ORIGIN` | `http://localhost:3000` | The single origin allowed by CORS. |
+| `FRONTEND_ORIGIN` | `http://localhost:3000` | Comma-separated exact origins allowed by CORS. Whitespace and empty entries are ignored; wildcards for preview domains are not enabled. |
 | `RATE_LIMIT_PER_MINUTE` | `30` | Accepted API requests per client IP in a sliding 60-second window. Must be a positive integer. Health checks and OPTIONS are exempt. Counters are in memory and reset on restart. |
 | `PORT` | `8000` | Port used by the Docker startup command; use the hosting provider's supplied value where available. |
 | `FORWARDED_ALLOW_IPS` | `127.0.0.1` (Uvicorn default) | Trusted reverse-proxy IPs/networks for resolving client IPs. Configure for your deployment's ingress; see proxy guidance below. |
@@ -153,7 +153,7 @@ Frontend (`frontend/.env.local`). Restart `npm run dev` after changing any of th
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Base URL of the backend, without a trailing slash. |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Public frontend origin for metadata, canonical URLs, sitemap URLs, and JSON-LD. |
+| `NEXT_PUBLIC_SITE_URL` | `https://pdf-studio-bice.vercel.app` | Public frontend origin for metadata, canonical URLs, sitemap URLs, and JSON-LD. The example environment file sets localhost for local development. |
 | `NEXT_PUBLIC_MAX_UPLOAD_MB` | `100` | Size limit the upload forms check before sending. Keep it equal to the backend's `MAX_UPLOAD_MB`; the backend stays the authority. |
 | `NEXT_PUBLIC_MAX_IMAGES` | `50` | Image limit the JPG to PDF form checks. Keep it equal to the backend's `MAX_IMAGES`. |
 
@@ -164,7 +164,7 @@ Use a stable HTTPS origin for each service, for example `https://pdf-studio.exam
 ### Backend on Render
 
 1. Create a web service from this repository using the Docker runtime. Set the service root/build context to `backend` and the Dockerfile path relative to that root to `Dockerfile`.
-2. Set `FRONTEND_ORIGIN` to the exact frontend origin, without a trailing slash or path. Set `RATE_LIMIT_PER_MINUTE=30`, `MAX_UPLOAD_MB=100`, `MAX_IMAGES=50`, and optionally the resource limits above. Let the service supply `PORT`; the Docker command reads it automatically.
+2. Set `FRONTEND_ORIGIN` to the exact frontend origin, without a trailing slash or path. To support multiple frontend domains, separate their exact origins with commas, for example `https://pdf-studio.example,https://preview.example`. Set `RATE_LIMIT_PER_MINUTE=30`, `MAX_UPLOAD_MB=100`, `MAX_IMAGES=50`, and optionally the resource limits above. Let the service supply `PORT`; the Docker command reads it automatically.
 3. Configure the health check path as `/api/health`. Run one instance. The image runs one Uvicorn worker as a non-root user, with writable ephemeral storage at `/app/storage`.
 4. Deploy, then check `https://<backend-host>/api/health` and use that HTTPS origin as Vercel's `NEXT_PUBLIC_API_URL`.
 
@@ -178,7 +178,7 @@ Use a stable HTTPS origin for each service, for example `https://pdf-studio.exam
 
 1. Import the repository, select the Next.js framework, and set the project root to `frontend`. Use Node.js 24 or a compatible newer version allowed by `package.json`, with the standard Next.js deployment settings.
 2. Set `NEXT_PUBLIC_API_URL` to the backend's HTTPS origin and `NEXT_PUBLIC_SITE_URL` to the final public frontend origin. Set `NEXT_PUBLIC_MAX_UPLOAD_MB` and `NEXT_PUBLIC_MAX_IMAGES` equal to the backend values.
-3. Deploy the frontend. Set the backend's `FRONTEND_ORIGIN` to that exact Vercel or custom-domain origin and redeploy/restart the backend. If the frontend URL changes, update both `FRONTEND_ORIGIN` and `NEXT_PUBLIC_SITE_URL` and redeploy the affected services. The single-origin CORS setting does not automatically allow Vercel preview URLs.
+3. Deploy the frontend. Set the backend's `FRONTEND_ORIGIN` to the exact Vercel and custom-domain origins, separated by commas, and redeploy/restart the backend. Add each preview origin explicitly; other Vercel preview URLs are not automatically allowed. If the primary frontend URL changes, also update `NEXT_PUBLIC_SITE_URL` and redeploy the frontend.
 4. Visit a tool page and verify the health pill, an upload, and its download. Check `/sitemap.xml`, `/robots.txt`, and `/llms.txt` on the frontend origin; sitemap and canonical URLs should use the public frontend origin.
 
 ### Proxy IPs, rate limits, and storage

@@ -36,11 +36,13 @@ export async function generateMetadata({
       title: tool.seoTitle,
       description: tool.seoDescription,
       url: `/tools/${slug}`,
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "pdf-studio — Privacy-First PDF Workstation" }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: tool.seoTitle,
       description: tool.seoDescription,
+      images: ["/opengraph-image"],
     },
   };
 }
@@ -63,7 +65,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
     description: tool.seoDescription,
     url,
     applicationCategory: "UtilitiesApplication",
-    operatingSystem: "Web browser with local pdf-studio backend",
+    operatingSystem: "Any OS with a modern web browser",
     isAccessibleForFree: true,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   };
@@ -111,7 +113,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
           </ol>
         </section>
         <section aria-labelledby="privacy-heading" className="border-t border-border pt-8">
-          <h2 id="privacy-heading" className="text-xl font-semibold tracking-tight">Privacy &amp; Local Architecture</h2>
+          <h2 id="privacy-heading" className="text-xl font-semibold tracking-tight">Zero-Trace Processing</h2>
           <div className="mt-4 space-y-3 text-sm leading-relaxed text-muted">
             <p>pdf-studio sends files to your configured backend, which runs on your machine by default. Each job uses an isolated temporary folder in the local engine.</p>
             <p>Zero retention means zero long-term file storage: uploads are removed after processing, and results are removed after download or expiry. Temporary files exist while the job runs. The expiry period defaults to 30 minutes and is configurable by the backend operator.</p>

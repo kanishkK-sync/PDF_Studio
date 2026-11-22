@@ -15,7 +15,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pdf-studio-bice.vercel.app"),
   title: {
     default: "pdf-studio — Privacy-First PDF Workstation",
     template: "%s | pdf-studio",
@@ -27,11 +27,13 @@ export const metadata: Metadata = {
     siteName: "pdf-studio",
     title: "pdf-studio — Privacy-First PDF Workstation",
     description: "15 free PDF tools for local conversion, editing, comparison, and redaction with zero long-term file retention.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "pdf-studio — Privacy-First PDF Workstation" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "pdf-studio — Privacy-First PDF Workstation",
     description: "15 free PDF tools for local conversion, editing, comparison, and redaction with zero long-term file retention.",
+    images: ["/opengraph-image"],
   },
 };
 
